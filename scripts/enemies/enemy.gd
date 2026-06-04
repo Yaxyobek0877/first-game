@@ -20,9 +20,9 @@ enum State { IDLE, CHASE, ATTACK, DEAD }
 @export var move_speed: float = 3.5
 @export var gravity: float = 20.0
 
-# --- Ko'rish masofalari ---
-@export var sight_range: float = 20.0        ## Shu masofadan yaqin bo'lsa o'yinchini "ko'radi"
-@export var lose_sight_range: float = 28.0   ## Bundan uzoqlashsa ta'qibni to'xtatadi (gisterezis)
+# --- Ko'rish masofalari (arena shooter — butun maydondan aggro) ---
+@export var sight_range: float = 45.0        ## Shu masofadan yaqin bo'lsa o'yinchini "ko'radi"
+@export var lose_sight_range: float = 55.0   ## Bundan uzoqlashsa ta'qibni to'xtatadi (gisterezis)
 @export var attack_range: float = 2.0        ## Shu masofadan yaqin bo'lsa zarba beradi
 
 # --- Hujum sozlamalari ---

@@ -25,7 +25,7 @@ Bu — foydalanuvchining **birinchi o'yini**. Maqsad: AI yordamida o'yin yaratis
 | **0. Asoslar** | Loyiha, papka tuzilishi, input xaritasi, `Events` autoload | ✅ Tugadi |
 | **1. Vertical Slice** | FPS yurish/qarash/sakrash, hitscan otish, nishonlar, HUD | ✅ Tugadi va tekshirildi |
 | **2. Jang tizimi** | AI dushman, qurol turlari, jon/zarar balansi | ✅ Tugadi va tekshirildi |
-| 3. Arena janglari | To'lqinli dushmanlar, bir nechta arena, ochko | ⏭️ Keyingi |
+| **3. Arena janglari** | To'lqin tizimi + spawn + ochko/rekord ✅ · ko'p arena/o'tish ⬜ | 🔄 Asosiy qism tayyor |
 | 4. Kampaniya/syujet | `docs/SENARIY.md` ni amalga oshirish — avval PROLOG | ⬜ |
 | 5. Sayqal | Tovush, effektlar, menyu, saqlash, optimizatsiya | ⬜ |
 | 6. Ko'p o'yinchilik | 5v5 janglar + xona (room) ochish — ilg'or/uzoq muddatli | ⬜ |
@@ -95,7 +95,7 @@ first_game/
     ├── autoload/events.gd
     ├── player/{player.gd, weapon.gd}
     ├── weapons/weapon_data.gd      # class_name WeaponData (custom Resource)
-    ├── world/arena.gd              # runtime navmesh bake
+    ├── world/{arena.gd, wave_manager.gd}  # navmesh bake · to'lqin spawner
     ├── enemies/{target_dummy.gd, enemy.gd}
     └── ui/{hud.gd, game_over.gd}
 ```

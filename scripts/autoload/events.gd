@@ -23,3 +23,6 @@ signal player_died()
 
 ## Qurol almashtirilganda yuboriladi (1/2 tugmalari). HUD WeaponLabel'ni yangilaydi.
 signal weapon_changed(weapon_name: String)
+
+## Yangi to'lqin (wave) boshlanganda yuboriladi. HUD to'lqin raqamini ko'rsatadi.
+signal wave_started(wave: int)
