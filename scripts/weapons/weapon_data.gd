@@ -16,3 +16,5 @@ class_name WeaponData
 @export var spread: float = 0.0               ## Tarqalish (radian) — kelajak uchun, hozir 0
 @export var max_range: float = 1000.0         ## Nur uzunligi (m). Nomi "range" emas —
                                               ## chunki range() GDScript'ning band funksiyasi.
+@export var zoom_fov: float = 0.0             ## O'ng tugma (aim) bosilganda kamera FOV (0 = zoom yo'q).
+                                              ## Snayper uchun kichik (kuchli zoom), avtomat uchun o'rta.

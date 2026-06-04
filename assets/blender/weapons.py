@@ -93,43 +93,62 @@ def join_export(name, glb_name):
 # Origin ~ tutqich/qabul qismi; stvol +Y ga cho'ziladi.
 # ============================================================================
 clear_scene()
-A_METAL = mat("A_Metal", (0.16, 0.16, 0.18), rough=0.4, metal=0.6)
+A_METAL = mat("A_Metal", (0.15, 0.15, 0.17), rough=0.4, metal=0.6)
+A_DARK = mat("A_Dark", (0.07, 0.07, 0.08), rough=0.5, metal=0.5)
 A_WOOD = mat("A_Wood", (0.30, 0.18, 0.09), rough=0.7)
 
-box("Receiver", (0.055, 0.34, 0.085), (0, 0.05, 0), A_METAL)           # qabul qismi
-cyl("Barrel", 0.018, 0.34, (0, 0.34, 0.02), A_METAL, rot=(90, 0, 0))    # stvol (oldinga)
-box("BarrelShroud", (0.05, 0.16, 0.05), (0, 0.27, 0.02), A_METAL)       # stvol g'ilofi
-box("Magazine", (0.04, 0.05, 0.17), (0, 0.08, -0.12), A_METAL)         # magazin (pastga)
-box("Grip", (0.04, 0.05, 0.10), (0, -0.07, -0.07), A_WOOD, rot=(18, 0, 0))  # tutqich
-box("Stock", (0.045, 0.18, 0.06), (0, -0.20, -0.01), A_WOOD)          # qo'ndoq (orqaga)
-box("FrontGrip", (0.035, 0.04, 0.08), (0, 0.20, -0.07), A_WOOD)       # oldingi tutqich
-# Qo'llar (Aros askari — xaki yeng, qora qo'lqop): tutqich + oldingi tutqichda
+box("Receiver", (0.058, 0.36, 0.09), (0, 0.05, 0), A_METAL)            # qabul qismi
+cyl("Barrel", 0.017, 0.36, (0, 0.36, 0.02), A_DARK, rot=(90, 0, 0))     # stvol
+box("BarrelShroud", (0.05, 0.18, 0.05), (0, 0.27, 0.02), A_METAL)       # stvol g'ilofi
+for yy in [0.22, 0.30, 0.38]:                                          # g'ilof yivlari (detal)
+    box("Vent", (0.053, 0.012, 0.053), (0, yy, 0.02), A_DARK)
+box("Magazine", (0.04, 0.055, 0.20), (0, 0.05, -0.14), A_DARK, rot=(8, 0, 0))  # qiya magazin
+box("MagWell", (0.046, 0.06, 0.05), (0, 0.05, -0.035), A_METAL)        # magazin uyasi
+box("Grip", (0.04, 0.05, 0.11), (0, -0.07, -0.08), A_WOOD, rot=(20, 0, 0))  # tutqich
+box("Stock", (0.045, 0.20, 0.06), (0, -0.22, -0.01), A_WOOD)          # qo'ndoq
+box("StockPlate", (0.05, 0.02, 0.085), (0, -0.32, -0.01), A_DARK)     # qo'ndoq plitasi
+box("FrontGrip", (0.035, 0.045, 0.09), (0, 0.18, -0.08), A_WOOD)      # oldingi tutqich
+box("FrontSight", (0.012, 0.02, 0.05), (0, 0.50, 0.065), A_DARK)      # old nishon (mushka)
+box("RearSight", (0.04, 0.03, 0.04), (0, -0.06, 0.07), A_DARK)        # orqa nishon
+box("ChargeHandle", (0.055, 0.045, 0.022), (0.035, 0.0, 0.055), A_DARK)  # zatvor dastasi
+box("EjectPort", (0.05, 0.08, 0.03), (0.032, 0.13, 0.04), A_DARK)     # gilza chiqargich
 A_GLOVE = mat("A_Glove", (0.16, 0.12, 0.08), rough=0.7)
 A_SLEEVE = mat("A_Sleeve", (0.41, 0.35, 0.23), rough=0.85)
-add_hand(0.0, -0.05, -0.085, A_GLOVE, A_SLEEVE)   # tutqich (trigger) qo'li
-add_hand(0.0, 0.20, -0.10, A_GLOVE, A_SLEEVE)     # oldingi tutqich qo'li
+add_hand(0.0, -0.05, -0.095, A_GLOVE, A_SLEEVE)   # tutqich (trigger) qo'li
+add_hand(0.0, 0.18, -0.11, A_GLOVE, A_SLEEVE)     # oldingi tutqich qo'li
 avtomat = join_export("Avtomat", "avtomat.glb")
 
 # ============================================================================
-# MILTIQ (zatvorli miltiq — sekin/kuchli), nayza bilan
+# SNAYPER (durbin/scope bilan — sekin/kuchli, uzoq masofa)
 # ============================================================================
 clear_scene()
-M_METAL = mat("M_Metal", (0.20, 0.20, 0.22), rough=0.4, metal=0.6)
-M_WOOD = mat("M_Wood", (0.33, 0.20, 0.10), rough=0.7)
-M_BAYO = mat("M_Bayo", (0.55, 0.57, 0.60), rough=0.3, metal=0.7)
+S_METAL = mat("S_Metal", (0.13, 0.13, 0.15), rough=0.4, metal=0.6)
+S_DARK = mat("S_Dark", (0.05, 0.05, 0.06), rough=0.5, metal=0.5)
+S_WOOD = mat("S_Wood", (0.26, 0.15, 0.08), rough=0.7)
+S_LENS = mat("S_Lens", (0.25, 0.45, 0.65), rough=0.1, metal=0.3)       # ko'k linza
 
-box("Stock", (0.05, 0.62, 0.09), (0, 0.0, -0.01), M_WOOD)              # yog'och qo'ndoq (uzun)
-cyl("Barrel", 0.014, 0.66, (0, 0.42, 0.035), M_METAL, rot=(90, 0, 0))  # stvol (tepada, oldinga)
-box("Receiver", (0.045, 0.14, 0.06), (0, 0.06, 0.03), M_METAL)        # qabul/zatvor qismi
-box("Bolt", (0.10, 0.03, 0.03), (0.06, 0.05, 0.05), M_METAL)          # zatvor dastasi (yonda)
-box("Trigger", (0.02, 0.03, 0.05), (0, 0.0, -0.06), M_METAL)          # tepki
-box("Bayonet", (0.012, 0.24, 0.012), (0, 0.86, 0.035), M_BAYO)        # nayza (uchida)
-# Qo'llar: tepki yonida + oldingi yog'och qism (forestock)da
-M_GLOVE = mat("M_Glove", (0.16, 0.12, 0.08), rough=0.7)
-M_SLEEVE = mat("M_Sleeve", (0.41, 0.35, 0.23), rough=0.85)
-add_hand(0.0, 0.02, -0.075, M_GLOVE, M_SLEEVE)    # tepki (trigger) qo'li
-add_hand(0.0, 0.34, -0.045, M_GLOVE, M_SLEEVE)    # oldingi qo'l (forestock)
-miltiq = join_export("Miltiq", "miltiq.glb")
+box("Stock", (0.05, 0.66, 0.10), (0, -0.05, -0.02), S_WOOD)           # uzun yog'och qo'ndoq
+box("Cheek", (0.052, 0.20, 0.05), (0, -0.18, 0.045), S_WOOD)          # yonoq tayanchi
+cyl("Barrel", 0.014, 0.88, (0, 0.52, 0.03), S_DARK, rot=(90, 0, 0))    # uzun ingichka stvol
+box("Receiver", (0.05, 0.22, 0.07), (0, 0.06, 0.03), S_METAL)         # qabul qismi
+box("Bolt", (0.11, 0.03, 0.03), (0.07, 0.04, 0.05), S_METAL)          # zatvor dastasi
+box("BoltKnob", (0.045, 0.045, 0.045), (0.125, 0.04, 0.05), S_DARK)   # zatvor sharchasi
+box("Trigger", (0.02, 0.03, 0.05), (0, 0.0, -0.06), S_METAL)          # tepki
+box("Grip", (0.04, 0.05, 0.10), (0, -0.04, -0.07), S_WOOD, rot=(18, 0, 0))  # tutqich
+box("Muzzle", (0.035, 0.06, 0.035), (0, 0.95, 0.03), S_DARK)          # stvol uchi (dulnaga)
+# Durbin (scope) — stvol ustida, tirgaklarda
+box("ScopeMountF", (0.03, 0.03, 0.07), (0, 0.18, 0.095), S_DARK)
+box("ScopeMountR", (0.03, 0.03, 0.07), (0, -0.04, 0.095), S_DARK)
+cyl("ScopeTube", 0.035, 0.34, (0, 0.07, 0.135), S_DARK, rot=(90, 0, 0))   # durbin tanasi
+cyl("ScopeFront", 0.052, 0.06, (0, 0.25, 0.135), S_DARK, rot=(90, 0, 0))  # old ob'ektiv
+cyl("ScopeRear", 0.047, 0.06, (0, -0.11, 0.135), S_DARK, rot=(90, 0, 0))  # ko'z qismi
+cyl("LensF", 0.042, 0.012, (0, 0.278, 0.135), S_LENS, rot=(90, 0, 0))     # old linza (ko'k)
+cyl("LensR", 0.037, 0.012, (0, -0.138, 0.135), S_LENS, rot=(90, 0, 0))    # ko'z linzasi
+S_GLOVE = mat("S_Glove", (0.16, 0.12, 0.08), rough=0.7)
+S_SLEEVE = mat("S_Sleeve", (0.41, 0.35, 0.23), rough=0.85)
+add_hand(0.0, 0.0, -0.075, S_GLOVE, S_SLEEVE)     # tepki (trigger) qo'li
+add_hand(0.0, 0.36, -0.045, S_GLOVE, S_SLEEVE)    # oldingi qo'l (forestock)
+sniper = join_export("Snayper", "sniper.glb")
 
 
 # ============================================================================
@@ -149,7 +168,7 @@ def import_glb(path, dx):
 
 
 import_glb(os.path.join(a_dir, "avtomat.glb"), -0.45)
-import_glb(os.path.join(a_dir, "miltiq.glb"), 0.45)
+import_glb(os.path.join(a_dir, "sniper.glb"), 0.45)
 
 bpy.ops.object.empty_add(location=(0, 0.1, 0))
 target = bpy.context.active_object

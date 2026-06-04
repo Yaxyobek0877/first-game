@@ -11,3 +11,4 @@ max_ammo = 16
 auto_fire = true
 spread = 0.0
 max_range = 1000.0
+zoom_fov = 55.0

@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://2rkrx48cebyl"
-path="res://.godot/imported/miltiq.glb-b464968e281ce0c4f35bf3e14998f5ef.scn"
+uid="uid://dh0xyrytby115"
+path="res://.godot/imported/sniper.glb-5707d3b0cef0808f763c1df5102bb2d5.scn"
 
 [deps]
 
-source_file="res://assets/models/miltiq.glb"
-dest_files=["res://.godot/imported/miltiq.glb-b464968e281ce0c4f35bf3e14998f5ef.scn"]
+source_file="res://assets/models/sniper.glb"
+dest_files=["res://.godot/imported/sniper.glb-5707d3b0cef0808f763c1df5102bb2d5.scn"]
 
 [params]
 

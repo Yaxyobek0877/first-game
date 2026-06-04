@@ -30,17 +30,24 @@ var _shot_player: AudioStreamPlayer    ## Otish tovushi
 @onready var ray: RayCast3D = $RayCast3D     ## Nishonni aniqlaydigan nur
 @onready var muzzle: Marker3D = $Muzzle      ## Quvur uchi (effekt chiqadigan nuqta)
 @onready var _flash: MeshInstance3D = $Muzzle/MuzzleFlash  ## Otish alangasi (toggle)
-## Qurol 3D modellari — tartibi `weapons` bilan bir xil (0=Avtomat, 1=Miltiq).
+## Qurol 3D modellari — tartibi `weapons` bilan bir xil (0=Avtomat, 1=Snayper).
 ## Faol qurolniki ko'rinadi, qolgani yashiriladi.
-@onready var _models: Array[Node3D] = [$AvtomatModel, $MiltiqModel]
+@onready var _models: Array[Node3D] = [$AvtomatModel, $SniperModel]
+## Kamera (Weapon tuguni Camera3D ostida) — aim/zoom uchun.
+@onready var _camera: Camera3D = get_parent() as Camera3D
+var _default_fov: float = 75.0
+var _aim_t: float = 0.0     ## Aim (ADS) o'tishi: 0 = beldan, 1 = markazga olingan
 
 
 func _ready() -> void:
+	# Zoom uchun kameraning asl FOV'ini saqlaymiz.
+	if _camera != null:
+		_default_fov = _camera.fov
 	# Agar Inspector'da qurollar berilmagan bo'lsa — standart ikkitasini yuklaymiz.
 	if weapons.is_empty():
 		weapons = [
-			load("res://resources/weapons/pistol.tres"),
-			load("res://resources/weapons/rifle.tres"),
+			load("res://resources/weapons/pistol.tres"),   # Avtomat (tez/zaif)
+			load("res://resources/weapons/sniper.tres"),    # Snayper (sekin/kuchli, durbin)
 		]
 
 	# Har bir qurol uchun magazinni to'la qilib boshlaymiz.
@@ -80,6 +87,7 @@ func _process(delta: float) -> void:
 	_recoil = _recoil.lerp(Vector3.ZERO, clampf(delta * 14.0, 0.0, 1.0))
 	_equip_t = move_toward(_equip_t, 1.0, delta * 4.5)
 	_update_viewmodel()
+	_update_zoom(delta)
 
 	# Qurol almashtirish — sichqoncha qamalmagan bo'lsa ham ishlasin (mouse guard'dan oldin).
 	if Input.is_action_just_pressed("weapon_1"):
@@ -135,6 +143,18 @@ func _apply_active_weapon() -> void:
 	_show_active_model()
 
 
+## O'ng tugma (aim) bosilganda faol qurolning zoom_fov'iga silliq o'tadi.
+func _update_zoom(delta: float) -> void:
+	if _camera == null or weapons.is_empty():
+		return
+	var w: Resource = _active()
+	var aiming: bool = Input.is_action_pressed("aim") and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and w.zoom_fov > 0.0
+	var target_fov: float = w.zoom_fov if aiming else _default_fov
+	_camera.fov = lerpf(_camera.fov, target_fov, clampf(delta * 14.0, 0.0, 1.0))
+	# ADS o'tishi (qurol markazga olinadi) — _update_viewmodel ishlatadi.
+	_aim_t = move_toward(_aim_t, 1.0 if aiming else 0.0, delta * 8.0)
+
+
 ## Faqat faol qurol modelini ko'rsatadi (qolganini yashiradi).
 func _show_active_model() -> void:
 	for i in _models.size():
@@ -149,10 +169,14 @@ func _update_viewmodel() -> void:
 	if _current_index >= _base_pos.size():
 		return
 	var m: Node3D = _models[_current_index]
-	var bob := Vector3(sin(_time * 1.8) * 0.003, sin(_time * 3.6) * 0.003, 0.0)
+	# Aim qilganda bob kamayadi (tinch nishon).
+	var bob := Vector3(sin(_time * 1.8) * 0.003, sin(_time * 3.6) * 0.003, 0.0) * (1.0 - _aim_t)
 	# equip: 0 da pastroq/orqaroq, 1 da asl joyda
 	var equip := (1.0 - _equip_t) * Vector3(0.05, -0.14, 0.05)
-	m.position = _base_pos[_current_index] + _recoil + bob + equip
+	# ADS: aim qilganda qurol markazga (x->0) va biroz oldinga/tepaga olinadi.
+	var bx: float = _base_pos[_current_index].x
+	var aim := _aim_t * Vector3(-bx * 0.92, 0.03, 0.05)
+	m.position = _base_pos[_current_index] + _recoil + bob + equip + aim
 
 
 ## Quvur uchidagi doimiy alanga tugunini qisqa vaqt ko'rsatadi (otish his uchun).
