@@ -24,3 +24,6 @@ assets/blender/_preview_*
 
 # Vaqtinchalik in-game screenshot'lar va ularning Godot .import sidecar'lari
 _ingame_shot*
+
+# Vaqtinchalik art/eksperiment fayllari
+.art_tmp/
