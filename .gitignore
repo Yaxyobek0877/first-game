@@ -21,3 +21,6 @@ Thumbs.db
 
 # Blender render preview'lari (soldier.py skriptidan qayta yaratiladi) + Godot .import
 assets/blender/_preview_*
+
+# Vaqtinchalik in-game screenshot'lar va ularning Godot .import sidecar'lari
+_ingame_shot*
