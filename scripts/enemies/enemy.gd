@@ -203,8 +203,50 @@ func _ranged_strike() -> void:
 	if not _has_line_of_sight():
 		return                 # pana ortida — o'q tegmaydi
 	_enemy_muzzle_flash()
+	# Ko'rinadigan o'q izi (tracer) quvurdan o'yinchigacha + tekkan joyda uchqun.
+	var muzzle_pos: Vector3 = global_position - global_transform.basis.z * 0.7 + Vector3(0, 1.0, 0)
+	var hit_pos: Vector3 = _player.global_position + Vector3(0, 1.1, 0)
+	_spawn_tracer(muzzle_pos, hit_pos)
+	_spawn_impact(hit_pos)
 	if _player.has_method("take_damage"):
 		_player.take_damage(ranged_damage)
+
+
+## O'q izi (tracer) — ikki nuqta orasida qisqa yorug' chiziq (0.05s).
+func _spawn_tracer(from: Vector3, to: Vector3) -> void:
+	var dist: float = from.distance_to(to)
+	if dist < 0.2:
+		return
+	var t := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = Vector3(0.03, 0.03, dist)
+	t.mesh = bm
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.albedo_color = Color(1.0, 0.8, 0.4)
+	mat.emission_enabled = true
+	mat.emission = Color(1.0, 0.7, 0.3)
+	t.material_override = mat
+	get_tree().current_scene.add_child(t)
+	t.global_position = (from + to) * 0.5
+	t.look_at(to, Vector3.UP)
+	get_tree().create_timer(0.05).timeout.connect(t.queue_free)
+
+
+## Tekkan joyda kichik uchqun (0.1s).
+func _spawn_impact(pos: Vector3) -> void:
+	var s := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = 0.07
+	sm.height = 0.14
+	s.mesh = sm
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.albedo_color = Color(1.0, 0.85, 0.5)
+	s.material_override = mat
+	get_tree().current_scene.add_child(s)
+	s.global_position = pos
+	get_tree().create_timer(0.1).timeout.connect(s.queue_free)
 
 
 ## Dushman ko'zidan o'yinchiga to'g'ri ko'rinish bormi? (devor/pana to'smaydimi)
