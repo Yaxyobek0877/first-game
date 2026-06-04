@@ -22,6 +22,9 @@ var _cooldown: float = 0.0             ## Keyingi otishgacha qolgan vaqt
 
 @onready var ray: RayCast3D = $RayCast3D     ## Nishonni aniqlaydigan nur
 @onready var muzzle: Marker3D = $Muzzle      ## Quvur uchi (effekt chiqadigan nuqta)
+## Qurol 3D modellari — tartibi `weapons` bilan bir xil (0=Avtomat, 1=Miltiq).
+## Faol qurolniki ko'rinadi, qolgani yashiriladi.
+@onready var _models: Array[Node3D] = [$AvtomatModel, $MiltiqModel]
 
 
 func _ready() -> void:
@@ -103,6 +106,14 @@ func _apply_active_weapon() -> void:
 	var w: Resource = _active()
 	Events.ammo_changed.emit(_ammo_counts[_current_index], w.max_ammo)
 	Events.weapon_changed.emit(w.display_name)
+	_show_active_model()
+
+
+## Faqat faol qurol modelini ko'rsatadi (qolganini yashiradi).
+func _show_active_model() -> void:
+	for i in _models.size():
+		if _models[i] != null:
+			_models[i].visible = (i == _current_index)
 
 
 func _shoot() -> void:

@@ -81,8 +81,8 @@ first_game/
 ├── docs/SENARIY.md        # O'yin hikoyasi (story bible) — «QAYTISH»
 ├── icon.svg
 ├── assets/
-│   ├── blender/soldier.py # Blender generator (model + rig + animatsiya → .glb)
-│   └── models/*.glb       # Eksport qilingan modellar (kron_soldier.glb)
+│   ├── blender/{soldier,props,weapons}.py  # Blender generatorlar (→ .glb)
+│   └── models/*.glb       # kron_soldier · trench_dressing · avtomat · miltiq
 ├── resources/
 │   └── weapons/{avtomat=pistol.tres, rifle.tres}  # WeaponData sozlamalari
 ├── scenes/
@@ -135,6 +135,12 @@ qayta yaratiladigan (reproducible), izohlar o'zbekcha. **Uslub:** stilize low-po
   (`idle`/`run`/`attack`/`die`). Har animatsiya self-contained (barcha suyaklarni belgilaydi).
 - **Integratsiya:** `enemy.tscn` modelni instance qiladi; `enemy.gd` AnimationPlayer'ni FSM bilan
   boshqaradi (`find_child` orqali topadi). Collision kapsula alohida qoladi (fizika).
+- **Generatorlar:** `soldier.py` (Kron askari, animatsiyali) · `props.py` (xandaq bezagi —
+  `trench_dressing.glb`, arenaga bir marta instance) · `weapons.py` (Avtomat/Miltiq viewmodel,
+  `player.tscn` Weapon ostida; `weapon.gd` faol qurol modelini ko'rsatadi).
+- **In-game tekshiruv:** kerak bo'lsa vaqtinchalik scene bilan Godot'ni oynali (`--headless`siz)
+  ishga tushirib, `get_viewport().get_texture().get_image().save_png(...)` orqali kadr olib,
+  Read bilan ko'rish mumkin (modellar joylashuvini tasdiqlash uchun).
 
 ---
 

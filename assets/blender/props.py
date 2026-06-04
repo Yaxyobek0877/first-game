@@ -179,7 +179,7 @@ barbed_wire_line(-15.5, -15.5, 15.5, -15.5)
 barbed_wire_line(-14, -13.5, 14, -13.5)
 barbed_wire_line(-15.5, 15.5, 15.5, 15.5)      # janub chegarasida ham bir qator
 
-# --- Qisqa oldinги panoh chiziqlari (markazdan chetda) ---
+# --- Qisqa oldingi panoh chiziqlari (markazdan chetda) ---
 sandbag_wall(-9, -6, 5.0, 20, rows=3)          # chap flang panoh
 sandbag_wall(9, -6, 5.0, -20, rows=3)          # o'ng flang panoh
 
@@ -195,7 +195,7 @@ crate(13, 6, 0.65, 8)
 barrel(-12.5, 7)
 barrel(11.5, -9)
 
-# --- Sochilgan taxtalar / xarobalar (chetlarда) ---
+# --- Sochilgan taxtalar / xarobalar (chetlarda) ---
 box("Plank", (2.4, 0.18, 0.08), (13, -9, 0.05), WOOD, yaw=30)
 box("Plank", (1.9, 0.16, 0.08), (-13, -8, 0.05), WOOD, yaw=-50)
 box("Plank", (2.6, 0.2, 0.08), (-10, 12, 0.05), WOOD, yaw=70)
