@@ -1,0 +1,20 @@
+# Godot 4+ uchun standart .gitignore
+
+# Godot import keshi va vaqtinchalik fayllar
+.godot/
+
+# Eski Godot import papkasi
+.import/
+
+# Eksport sozlamalari (mashina-ga xos)
+export.cfg
+export_presets.cfg
+
+# Mono / C# (agar keyin qo'shsak)
+.mono/
+data_*/
+mono_crash.*.json
+
+# OS fayllari
+.DS_Store
+Thumbs.db
