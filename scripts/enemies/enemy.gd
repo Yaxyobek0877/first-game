@@ -95,6 +95,7 @@ var _investigate_t: float = 0.0
 var _strafe_sign: float = 1.0
 var _strafe_flip_t: float = 0.0
 var _strafe_collide_cd: float = 0.0   ## To'qnashuvda strafe almashishi orasidagi sovish (jitter oldini oladi)
+var _aggressive: bool = false         ## Wave failsafe: leash bekor, o'yinchiga to'g'ridan-to'g'ri "bosqin"
 
 @onready var nav: NavigationAgent3D = $NavigationAgent3D
 @onready var collision_shape: CollisionShape3D = $CollisionShape3D
@@ -246,8 +247,9 @@ func _do_guard(delta: float) -> void:
 	if _look_t <= 0.0:
 		_look_t = randf_range(3.0, 5.0)
 		_face_yaw = _hold_yaw() + deg_to_rad(randf_range(-35.0, 35.0))
-	# O'yinchini ko'rsa va post yaqinida bo'lsa — jangga.
-	if _can_see_player and _dist_post_to_player() <= engage_range:
+	# O'yinchini KO'RSA — jangga (post yaqinligidan qat'i nazar; leash chiqishni cheklaydi,
+	# lekin qo'riqchi tirik tuyuladi: ko'rgan zahoti o'q uzadi/yaqinlashadi).
+	if _can_see_player:
 		_enter_state(State.ENGAGE)
 
 
@@ -360,7 +362,7 @@ func _do_advance(delta: float) -> void:
 		return
 
 	var spd: float = move_speed * _state_speed_factor()
-	if is_ranged:
+	if is_ranged and not _aggressive:
 		# O'q uzish postiga boradi; yetib borsa — o'yinchini kutib turadi (otish masofasiga kirsa ENGAGE).
 		if _dist_to(guard_position) <= guard_radius:
 			_desired_vel = Vector3.ZERO
@@ -371,16 +373,20 @@ func _do_advance(delta: float) -> void:
 		if v.length() > 0.1:
 			_set_face_dir(v)
 	else:
-		# Assault/Flanker.
-		var goal: Vector3 = _aim_or_player(_player.global_position)
-		if role == Role.FLANKER and _dist_to_player() > attack_range * 2.5:
-			goal = _flank_target()
+		# Assault/Flanker — yoki "bosqin"dagi (aggressive) har qanday rol — o'yinchiga.
+		var goal: Vector3
+		if _aggressive:
+			goal = _player.global_position   # to'g'ridan-to'g'ri o'yinchiga (storm)
+		else:
+			goal = _aim_or_player(_player.global_position)
+			if role == Role.FLANKER and _dist_to_player() > attack_range * 2.5:
+				goal = _flank_target()
 		var v: Vector3 = _move_toward_goal(goal, spd, delta)
 		_desired_vel = v
 		if v.length() > 0.1:
 			_set_face_dir(v)
-		# Oxirgi ko'rilgan joyga yetib bordi-yu o'yinchi yo'q — tekshiradi.
-		if _last_known_pos != Vector3.INF and _dist_to(_last_known_pos) <= 1.5 and not _can_see_player:
+		# Oxirgi ko'rilgan joyga yetib bordi-yu o'yinchi yo'q — tekshiradi (aggressive emas).
+		if not _aggressive and _last_known_pos != Vector3.INF and _dist_to(_last_known_pos) <= 1.5 and not _can_see_player:
 			_enter_state(State.INVESTIGATE)
 
 
@@ -632,9 +638,24 @@ func _is_guarding_role() -> bool:
 
 ## Postga bog'langan rol postdan juda uzoqlashganmi?
 func _leashed() -> bool:
-	if role == Role.ASSAULT or role == Role.FLANKER:
+	if _aggressive or role == Role.ASSAULT or role == Role.FLANKER:
 		return false
 	return _dist_to(guard_position) > leash_range
+
+
+## Wave failsafe (wave_manager chaqiradi): hech kim o'yinchiga yetolmasa — dushman "bosqin"ga
+## o'tadi (leash bekor, to'g'ridan-to'g'ri o'yinchiga yuradi). Garnizon hissi boshda saqlanadi,
+## lekin wave doim tugaydi va o'yinchi hech qachon "bo'sh maydon"da yolg'iz qolmaydi.
+func go_aggressive() -> void:
+	if _state == State.DEAD or _aggressive:
+		return
+	_aggressive = true
+	leash_range = 99999.0
+	if is_instance_valid(_player):
+		_last_known_pos = _player.global_position
+		_time_since_seen = 0.0
+	if _state == State.GUARD or _state == State.PATROL or _state == State.RETURN or _state == State.INVESTIGATE:
+		_enter_state(State.ADVANCE)
 
 
 # --- Zarba (melee) ---

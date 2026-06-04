@@ -12,9 +12,13 @@ const Enemy = preload("res://scripts/enemies/enemy.gd")
 @export var first_wave_delay: float = 1.5
 @export var between_wave_delay: float = 3.0
 @export var base_count: int = 2
+## Shuncha vaqt (s) hech bir dushman o'lmasa (o'yinchi bekinib/uzoqda tursa) — qolgan
+## dushmanlar "bosqin"ga o'tadi va o'yinchiga bostirib keladi (wave doim tugaydi).
+@export var stall_limit: float = 10.0
 
 var _wave: int = 0
 var _spawning: bool = false
+var _stall_timer: float = 0.0   ## Oxirgi o'limdan beri o'tgan vaqt (failsafe uchun)
 
 ## Hujumchi/qanotchi spawn nuqtalari (shimol + flanglar — o'yinchidan uzoq).
 var _spawn_points: Array[Vector3] = [
@@ -48,16 +52,34 @@ const PATROL_LOOPS: Array = [
 func _ready() -> void:
 	if enemy_scene == null:
 		enemy_scene = load("res://scenes/enemies/enemy.tscn")
+	# Dushman o'lganda failsafe taymerini qayta boshlaymiz (jang davom etyapti).
+	Events.enemy_died.connect(_on_enemy_died)
 	# create_timer(..., false): pauzaga bo'ysunadi — game over paytida spawn bo'lmaydi.
 	await get_tree().create_timer(first_wave_delay, false).timeout
 	_start_wave()
 
 
-func _process(_delta: float) -> void:
-	if _wave > 0 and not _spawning:
-		if get_tree().get_nodes_in_group("enemy").is_empty():
-			_spawning = true
-			_next_wave_after_delay()
+func _process(delta: float) -> void:
+	if _wave <= 0 or _spawning:
+		return
+	var enemies: Array = get_tree().get_nodes_in_group("enemy")
+	if enemies.is_empty():
+		_spawning = true
+		_next_wave_after_delay()
+		return
+	# Failsafe: uzoq vaqt hech kim o'lmasa (o'yinchi bekinib turibdi yoki dushmanlar yetolmaydi)
+	# — qolgan barcha dushmanlar "bosqin"ga o'tadi (har biri o'yinchiga to'g'ridan-to'g'ri yuradi).
+	_stall_timer += delta
+	if _stall_timer >= stall_limit:
+		_stall_timer = 0.0
+		for e in enemies:
+			if e.has_method("go_aggressive"):
+				e.go_aggressive()
+		print("[WM] Bosqin! Dushmanlar o'yinchiga bostirib kelmoqda.")
+
+
+func _on_enemy_died(_e: Node) -> void:
+	_stall_timer = 0.0   # jangda muvaffaqiyat bor — failsafe taymerini tiklaymiz
 
 
 func _next_wave_after_delay() -> void:
@@ -67,6 +89,7 @@ func _next_wave_after_delay() -> void:
 
 func _start_wave() -> void:
 	_wave += 1
+	_stall_timer = 0.0   # har yangi wave failsafe taymerini yangidan boshlaydi
 	var count: int = base_count + _wave
 	var roles: Array = _composition(_wave, count)
 	# Postlarni taqsimlash uchun nusxalar (pop bilan — ikkitasi bir postga tushmasin).
@@ -114,12 +137,13 @@ func _start_wave() -> void:
 func _composition(wave: int, count: int) -> Array:
 	var roles: Array = []
 	if wave == 1:
-		# Garnizon: o'yinchi "ular postni ushlaydi, leash bor" ekanini o'rganadi.
-		roles = [Enemy.Role.SENTRY, Enemy.Role.SENTRY, Enemy.Role.PATROL]
+		# Har wave'da o'yinchiga keladigan rusher BOR (bo'sh maydon hissi bo'lmasin):
+		# 2 hujumchi bostirib keladi + 1 qo'riqchi postni ushlaydi (rol hissi).
+		roles = [Enemy.Role.ASSAULT, Enemy.Role.ASSAULT, Enemy.Role.SENTRY]
 	elif wave == 2:
-		roles = [Enemy.Role.SENTRY, Enemy.Role.PATROL, Enemy.Role.RIFLEMAN, Enemy.Role.ASSAULT]
+		roles = [Enemy.Role.ASSAULT, Enemy.Role.FLANKER, Enemy.Role.SENTRY, Enemy.Role.RIFLEMAN]
 	elif wave == 3:
-		roles = [Enemy.Role.SENTRY, Enemy.Role.RIFLEMAN, Enemy.Role.MARKSMAN, Enemy.Role.ASSAULT, Enemy.Role.FLANKER]
+		roles = [Enemy.Role.ASSAULT, Enemy.Role.ASSAULT, Enemy.Role.FLANKER, Enemy.Role.RIFLEMAN, Enemy.Role.MARKSMAN]
 	else:
 		# Byudjet-asosli: avval "ziravor" rollar (kam, lekin xilma-xillik beradi) —
 		# bular count'ga ALBATTA sig'adi (yig'indisi count'dan oshmaydi). Qolgan
