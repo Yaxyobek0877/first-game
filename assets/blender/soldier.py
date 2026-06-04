@@ -254,11 +254,12 @@ def build_soldier(faction, cfg):
     parts.append(box("Strap", (0.06, 0.03, 0.56), (0.0, -0.13, 1.2), BELT, rot=(0, 28, 0)))
     parts.append(cyl("Canteen", 0.055, 0.13, (0.22, 0.06, 0.85), METAL, verts=12, rot=(90, 0, 0)))
 
-    # Qo'llar: miltiqni IKKI QO'LLAB oldinda ushlaydi (low-ready) — tana oldida, alohida.
-    R_grip = (0.13, 0.05, 1.06)      # o'ng kaft (grip — miltiq orqasi)
-    L_grip = (0.08, -0.24, 1.06)     # chap kaft (foreend — miltiq oldi)
-    R_sh = (0.30, 0.0, 1.45); R_el = (0.36, 0.09, 1.20)    # o'ng yelka -> tirsak
-    L_sh = (-0.30, 0.0, 1.45); L_el = (-0.06, -0.02, 1.22)  # chap yelka -> tirsak
+    # Qo'llar: miltiq YELKAGA olingan, nishonga tayyor (CS2 uslubi) — ikki qo'l bilan,
+    # support (chap) qo'l oldinga cho'zilgan, stvol oldinga. Tana oldida, baland.
+    R_grip = (0.15, -0.10, 1.25)     # o'ng kaft (pistolet grip — orqada, yuqori)
+    L_grip = (0.10, -0.41, 1.17)     # chap kaft (handguard — oldinga, pastroq; support)
+    R_sh = (0.30, 0.0, 1.45); R_el = (0.40, 0.07, 1.30)    # o'ng tirsak — yonga (shouldered "wing")
+    L_sh = (-0.30, 0.0, 1.45); L_el = (-0.10, -0.08, 1.28)  # chap tirsak — oldinga (support)
     parts.append(limb("UpperArm.R", R_sh, R_el, 0.08, 0.062, COAT))
     parts.append(ball("Elbow.R", (0.066, 0.066, 0.066), R_el, COAT, subdiv=1))
     parts.append(limb("Forearm.R", R_el, R_grip, 0.062, 0.05, COAT))
@@ -286,9 +287,10 @@ def build_soldier(faction, cfg):
     parts.append(ball("HelmetLug.L", (0.03, 0.03, 0.028), (-0.145, 0.0, 1.80), HELMET, subdiv=1))
     parts.append(ball("HelmetLug.R", (0.03, 0.03, 0.028), (0.145, 0.0, 1.80), HELMET, subdiv=1))
 
-    # Miltiq + nayza — IKKI kaft orasidan oldinga (tana oldida, alohida ko'rinadi)
-    parts.append(box("Rifle", (0.05, 0.88, 0.07), (0.105, -0.22, 1.06), WOOD))
-    parts.append(box("Bayonet", (0.02, 0.30, 0.02), (0.105, -0.72, 1.06), METAL))
+    # Miltiq + nayza — yelkaga olingan, stvol oldinga-pastga biroz burchak bilan (CS2 low-ready):
+    # oldindan uzunligi/stvoli ko'rinadi, kaftlar grip/handguardda.
+    parts.append(box("Rifle", (0.05, 0.95, 0.07), (0.13, -0.22, 1.23), WOOD, rot=(14, 0, -8)))
+    parts.append(box("Bayonet", (0.02, 0.30, 0.02), (0.05, -0.82, 1.07), METAL, rot=(14, 0, -8)))
 
     # --- Rigid skinning: har qismga suyak nomli vertex group (vazn 1.0) ---
     for o in parts:
@@ -357,10 +359,10 @@ def build_soldier(faction, cfg):
         for b in ALL_BONES:
             key(frame, b, pose.get(b, (0, 0, 0)))
 
-    # Qo'llar miltiqni doimo IKKI QO'LLAB ushlaydi — har animatsiyada ArmL==ArmR
-    # (alohida silkitmaymiz, aks holda kaftlar miltiqdan ajrab ketadi). kp() shu
-    # "ushlash" pozasini asos qilib, ustiga animatsiya pozasini qo'yadi.
-    ARMS_HOLD = {"ArmL": (-5, 0, 0), "ArmR": (-5, 0, 0)}
+    # Qo'llar miltiqni doimo YELKADA ushlab turadi — animatsiyalarda qo'l burilmaydi
+    # (poza geometriyaga qurilgan; burilsa uzun miltiq og'adi/kaftlar ajraydi).
+    # kp() shu "ushlash"ni asos qilib (qo'l=0), ustiga animatsiya pozasini qo'yadi.
+    ARMS_HOLD = {}
 
     def kp(frame, pose):
         merged = dict(ARMS_HOLD)
