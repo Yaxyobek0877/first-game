@@ -37,6 +37,8 @@ var _shot_player: AudioStreamPlayer    ## Otish tovushi
 @onready var _camera: Camera3D = get_parent() as Camera3D
 var _default_fov: float = 75.0
 var _aim_t: float = 0.0     ## Aim (ADS) o'tishi: 0 = beldan, 1 = markazga olingan
+var _reloading: bool = false  ## Qayta o'qlash jarayonidami (otib bo'lmaydi)
+var _reload_t: float = 0.0    ## Reload animatsiyasi progressi 0->1 (qurol pasayadi)
 
 
 func _ready() -> void:
@@ -86,6 +88,8 @@ func _process(delta: float) -> void:
 	_time += delta
 	_recoil = _recoil.lerp(Vector3.ZERO, clampf(delta * 14.0, 0.0, 1.0))
 	_equip_t = move_toward(_equip_t, 1.0, delta * 4.5)
+	if _reloading and not weapons.is_empty():
+		_reload_t = minf(_reload_t + delta / maxf(0.1, _active().reload_time), 1.0)
 	_update_viewmodel()
 	_update_zoom(delta)
 
@@ -108,11 +112,11 @@ func _process(delta: float) -> void:
 		else Input.is_action_just_pressed("shoot")
 	)
 
-	if wants_to_fire and _cooldown <= 0.0 and _ammo_counts[_current_index] > 0:
+	if wants_to_fire and _cooldown <= 0.0 and _ammo_counts[_current_index] > 0 and not _reloading:
 		_shoot()
 
 	if Input.is_action_just_pressed("reload"):
-		reload()
+		_start_reload()
 
 
 ## Joriy (faol) qurol ma'lumotini qaytaradi.
@@ -128,6 +132,8 @@ func _switch_to(index: int) -> void:
 		return
 	_current_index = index
 	_equip_t = 0.0   # yangi qurol pastdan "olinadi" (equip animatsiyasi)
+	_reloading = false   # qurol almashsa reload bekor bo'ladi
+	_reload_t = 0.0
 	# Cooldown'ni SAQLAB qolamiz (nolga tushirmaymiz) — aks holda `1`/`2` ni tez-tez
 	# bosib fire_rate cheklovini chetlab o'tib, juda tez otish mumkin bo'lardi (exploit).
 	_apply_active_weapon()
@@ -176,7 +182,12 @@ func _update_viewmodel() -> void:
 	# ADS: aim qilganda qurol markazga (x->0) va biroz oldinga/tepaga olinadi.
 	var bx: float = _base_pos[_current_index].x
 	var aim := _aim_t * Vector3(-bx * 0.92, 0.03, 0.05)
-	m.position = _base_pos[_current_index] + _recoil + bob + equip + aim
+	# Reload: qurol pasayadi (o'rtada eng past) — magazin almashish hissi.
+	var reload_dip := Vector3.ZERO
+	if _reloading:
+		var d: float = sin(_reload_t * PI)
+		reload_dip = Vector3(0.04, -0.20 * d, 0.0)
+	m.position = _base_pos[_current_index] + _recoil + bob + equip + aim + reload_dip
 
 
 ## Quvur uchidagi doimiy alanga tugunini qisqa vaqt ko'rsatadi (otish his uchun).
@@ -246,10 +257,28 @@ func _shoot() -> void:
 	_spawn_tracer(muzzle.global_position, tracer_end)
 
 
-func reload() -> void:
+## Qayta o'qlashni boshlaydi (animatsiya bilan). Jarayonda otib bo'lmaydi.
+func _start_reload() -> void:
+	if _reloading or weapons.is_empty():
+		return
 	var w: Resource = _active()
+	if _ammo_counts[_current_index] >= w.max_ammo:
+		return   # magazin to'la — kerak emas
+	_reloading = true
+	_reload_t = 0.0
+	_reload(w)
+
+
+## Reload jarayoni: o'rtada (qurol eng pastda) magazin almashadi.
+func _reload(w: Resource) -> void:
+	var half: float = w.reload_time * 0.5
+	await get_tree().create_timer(half, false).timeout
+	if not _reloading:           # almashtirilgan/bekor qilingan bo'lishi mumkin
+		return
 	_ammo_counts[_current_index] = w.max_ammo
 	Events.ammo_changed.emit(_ammo_counts[_current_index], w.max_ammo)
+	await get_tree().create_timer(half, false).timeout
+	_reloading = false
 
 
 ## Nur tekkan joyda kichik "uchqun" (sharcha) hosil qilamiz va tezda o'chiramiz.
