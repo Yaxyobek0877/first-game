@@ -12,6 +12,7 @@ Bu — foydalanuvchining **birinchi o'yini**. Maqsad: AI yordamida o'yin yaratis
 
 - **Janr:** birinchi shaxs (FPS) **otishma + sarguzasht/syujet**.
 - **Asosiy mexanika:** alohida **arenalarda** janglar, hikoya/scenariy bilan bog'langan.
+- **Hikoya:** to'liq senariy → `docs/SENARIY.md` («QAYTISH» — muqobil tarix, 1-jahon urushi uslubi; kelajakdan o'tmishga qaytgan general taqdirni o'zgartirishga urinadi).
 - **Dvijok:** **Godot 4.6**, **GDScript** (Mono/C# emas).
 - **Tamoyil:** professional, bosqichma-bosqich ("vertical slice" → kengaytirish). Sifat va o'rganish birinchi o'rinda.
 
@@ -23,23 +24,31 @@ Bu — foydalanuvchining **birinchi o'yini**. Maqsad: AI yordamida o'yin yaratis
 |---------|--------|-------|
 | **0. Asoslar** | Loyiha, papka tuzilishi, input xaritasi, `Events` autoload | ✅ Tugadi |
 | **1. Vertical Slice** | FPS yurish/qarash/sakrash, hitscan otish, nishonlar, HUD | ✅ Tugadi va tekshirildi |
-| **2. Jang tizimi** | AI dushman, qurol turlari, jon/zarar balansi | ⏭️ Keyingi |
-| 3. Arena janglari | To'lqinli dushmanlar, bir nechta arena, ochko | ⬜ |
-| 4. Sarguzasht/syujet | Darajalar, hikoya, NPC, maqsadlar, o'tish | ⬜ |
+| **2. Jang tizimi** | AI dushman, qurol turlari, jon/zarar balansi | ✅ Tugadi va tekshirildi |
+| 3. Arena janglari | To'lqinli dushmanlar, bir nechta arena, ochko | ⏭️ Keyingi |
+| 4. Kampaniya/syujet | `docs/SENARIY.md` ni amalga oshirish — avval PROLOG | ⬜ |
 | 5. Sayqal | Tovush, effektlar, menyu, saqlash, optimizatsiya | ⬜ |
+| 6. Ko'p o'yinchilik | 5v5 janglar + xona (room) ochish — ilg'or/uzoq muddatli | ⬜ |
 
-**1-bosqich `--headless` rejimida 120 kadr toza ishladi** (script/sahna xatosi yo'q).
+**1- va 2-bosqich `--headless` rejimida toza ishladi** (xato/ogohlantirish yo'q). 2-bosqich
+`--fixed-fps 60 --quit-after 1200` (20 s determenistik simulyatsiya) bilan **uchidan-uchiga** ham
+tekshirildi: navmesh bake bo'ladi (59 ko'pburchak), dushman o'yinchini topib ta'qib qiladi, hujum
+qiladi va o'ldiradi → "O'yin tugadi" pauzasi ishlaydi.
 
 ---
 
 ## 🗺️ Aniq maqsadlar (bosqichlarning konkret natijalari)
 
-**2-bosqich — Jang tizimi (keyingi):**
-- [ ] Harakatlanadigan AI dushman: `CharacterBody3D` + `NavigationAgent3D`, o'yinchini ko'rib, tomon yuradi.
-- [ ] Dushman hujum qiladi (otish yoki yaqin masofa) → o'yinchi jon yo'qotadi.
-- [ ] O'yinchi o'lganda: "O'yin tugadi" ekrani + qayta boshlash.
-- [ ] `target_dummy` ni real dushman bilan almashtirish (lekin nishon ham qoladi — mashq uchun).
-- [ ] Kamida 2 qurol turi (masalan: tez/zaif vs sekin/kuchli), `1`/`2` bilan almashtirish.
+**2-bosqich — Jang tizimi (✅ TUGADI):**
+- [x] Harakatlanadigan AI dushman: `CharacterBody3D` + `NavigationAgent3D`, o'yinchini ko'rib, tomon yuradi (FSM: IDLE/CHASE/ATTACK/DEAD).
+- [x] Dushman hujum qiladi (yaqin masofa / melee — nayza uslubi) → o'yinchi jon yo'qotadi.
+- [x] O'yinchi o'lganda: "O'yin tugadi" ekrani + qayta boshlash (pauza-bilan ishlovchi UI).
+- [x] `target_dummy` saqlandi (mashq nishoni) + yonida tirik dushman qo'shildi.
+- [x] 2 qurol turi: **Avtomat** (tez/zaif, auto) va **Miltiq** (sekin/kuchli, bitta-bitta), `1`/`2` bilan almashtirish, har biriga alohida o'q-dori.
+
+> Eslatma: navmesh CSG'dan emas, ko'rinmas yordamchi collision shape'lardan (`nav_source` guruhi,
+> 8-qatlam) `arena.gd` ichida runtime'da bake qilinadi. Senariyga mos: melee dushman ≈ nayzali
+> Kron askari; o'lim→qayta-boshlash «Qaytish» mexanikasiga singadi.
 
 **3-bosqich — Arena janglari:** to'lqin (wave) tizimi, dushman spawn nuqtalari, ochko/rekord, 2-3 arena sahnasi, arenadan arenaga o'tish.
 
@@ -51,11 +60,14 @@ Bu — foydalanuvchining **birinchi o'yini**. Maqsad: AI yordamida o'yin yaratis
 
 ## 🏗️ Arxitektura
 
-- **Signal bus (`Events` autoload)** — `scripts/autoload/events.gd`. Sahnalar bir-birini bilmaydi; signal orqali "gaplashadi" (decoupling). Signallar: `ammo_changed`, `player_health_changed`, `enemy_died`. Yangi global hodisalarni shu yerga qo'shing.
+- **Signal bus (`Events` autoload)** — `scripts/autoload/events.gd`. Sahnalar bir-birini bilmaydi; signal orqali "gaplashadi" (decoupling). Signallar: `ammo_changed`, `player_health_changed`, `enemy_died`, `player_died`, `weapon_changed`. Yangi global hodisalarni shu yerga qo'shing.
 - **Scene-per-concept** — har bir mantiqiy bo'lak alohida `.tscn` (player, world, enemy, ui).
 - **`@export` tunables** — tezlik, zarar, jon kabi qiymatlar Inspector orqali sozlanadi (kodga tegmasdan).
-- **Player** — `CharacterBody3D`; harakat `_physics_process` ichida, qarash `_unhandled_input` ichida.
-- **Weapon** — Camera3D ostida; **hitscan** (`RayCast3D.force_raycast_update()`). Agar nishonda `take_damage(amount)` bo'lsa zarar beradi (duck typing: `has_method`).
+- **Player** — `CharacterBody3D`; harakat `_physics_process` ichida, qarash `_unhandled_input` ichida. `"player"` guruhida (dushman uni topadi).
+- **Weapon** — Camera3D ostida; **hitscan** (`RayCast3D.force_raycast_update()`). Qurollar `WeaponData` resurslari (`resources/weapons/*.tres`), `Array[Resource]` sifatida saqlanadi; har biriga alohida o'q-dori. Nishonda `take_damage(amount: float)` bo'lsa zarar beradi (duck typing: `has_method`).
+- **Enemy** — `CharacterBody3D` + `NavigationAgent3D`, `enemy.gd` FSM. Player'ni `get_first_node_in_group("player")` orqali topadi. `take_damage`/`_die` → `Events.enemy_died`.
+- **Collision qatlamlari:** world=1, player=2, enemy=3 (value 4), nav-source=4 (value 8). Player layer=2/mask=5; Enemy layer=4/mask=3; qurol nuri mask=5 (world+enemy); dummy'lar 1-qatlamda.
+- **Pauza/o'lim:** `Events.player_died` → `game_over.tscn` (`PROCESS_MODE_ALWAYS`) `get_tree().paused=true` qiladi; restart `paused=false` (avval) → `reload_current_scene()`.
 
 ---
 
@@ -63,26 +75,32 @@ Bu — foydalanuvchining **birinchi o'yini**. Maqsad: AI yordamida o'yin yaratis
 
 ```
 first_game/
-├── project.godot          # Sozlamalar + input xaritasi + Events autoload
+├── project.godot          # Sozlamalar + input xaritasi (+weapon_1/2) + Events autoload
 ├── CLAUDE.md              # (shu fayl) loyiha konteksti
 ├── README.md              # Inson uchun hujjat + boshqaruv
+├── docs/SENARIY.md        # O'yin hikoyasi (story bible) — «QAYTISH»
 ├── icon.svg
+├── assets/models/         # Blender'da yasalgan .glb modellar (asset pipeline)
+├── resources/
+│   └── weapons/{avtomat=pistol.tres, rifle.tres}  # WeaponData sozlamalari
 ├── scenes/
-│   ├── main.tscn          # Bosh sahna: arena + player + 3 nishon + HUD
+│   ├── main.tscn          # Bosh sahna: arena + player + 3 nishon + Enemy + HUD + GameOver
 │   ├── player/player.tscn # CharacterBody3D > Head > Camera3D > Weapon(RayCast3D, GunMesh, Muzzle)
-│   ├── world/arena.tscn   # WorldEnvironment + Sun + CSGBox3D yer/devor/panalar
-│   ├── enemies/target_dummy.tscn
-│   └── ui/hud.tscn        # Crosshair, Ammo, Health, Score
+│   ├── world/arena.tscn   # WorldEnvironment + Sun + CSGBox + NavigationRegion3D(nav_source)
+│   ├── enemies/{target_dummy.tscn, enemy.tscn}
+│   └── ui/{hud.tscn, game_over.tscn}
 └── scripts/
     ├── autoload/events.gd
     ├── player/{player.gd, weapon.gd}
-    ├── enemies/target_dummy.gd
-    └── ui/hud.gd
+    ├── weapons/weapon_data.gd      # class_name WeaponData (custom Resource)
+    ├── world/arena.gd              # runtime navmesh bake
+    ├── enemies/{target_dummy.gd, enemy.gd}
+    └── ui/{hud.gd, game_over.gd}
 ```
 
 ## 🎮 Boshqaruv
 
-`WASD` yurish · sichqoncha qarash · chap tugma otish · `Shift` yugurish · `Space` sakrash · `R` qayta o'qlash · `Esc` sichqonchani bo'shatish.
+`WASD` yurish · sichqoncha qarash · chap tugma otish · `Shift` yugurish · `Space` sakrash · `R` qayta o'qlash · `1`/`2` qurol almashtirish · `Esc` sichqonchani bo'shatish.
 
 ---
 

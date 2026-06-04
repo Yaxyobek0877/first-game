@@ -1,0 +1,13 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+display_name = "Avtomat"
+damage = 18.0
+fire_rate = 0.12
+max_ammo = 16
+auto_fire = true
+spread = 0.0
+max_range = 1000.0

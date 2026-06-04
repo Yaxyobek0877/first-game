@@ -1,4 +1,6 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/arena.gd" id="1"]
 
 [sub_resource type="ProceduralSkyMaterial" id="Sky_mat"]
 sky_horizon_color = Color(0.6, 0.65, 0.7, 1)
@@ -25,7 +27,27 @@ roughness = 0.8
 albedo_color = Color(0.5, 0.4, 0.28, 1)
 roughness = 0.85
 
+[sub_resource type="NavigationMesh" id="NavMesh_1"]
+geometry_parsed_geometry_type = 1
+geometry_source_geometry_mode = 1
+geometry_source_group_name = &"nav_source"
+geometry_collision_mask = 8
+agent_radius = 0.5
+agent_height = 2.0
+cell_size = 0.25
+cell_height = 0.25
+
+[sub_resource type="BoxShape3D" id="NavFloorShape"]
+size = Vector3(38, 1, 38)
+
+[sub_resource type="BoxShape3D" id="NavBoxSmall"]
+size = Vector3(2, 4, 2)
+
+[sub_resource type="BoxShape3D" id="NavBoxBig"]
+size = Vector3(3, 4, 3)
+
 [node name="Arena" type="Node3D"]
+script = ExtResource("1")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Env_1")
@@ -87,3 +109,48 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 1, 2)
 use_collision = true
 size = Vector3(2, 2, 2)
 material = SubResource("Mat_box")
+
+[node name="NavigationRegion3D" type="NavigationRegion3D" parent="."]
+navigation_mesh = SubResource("NavMesh_1")
+
+[node name="NavSources" type="Node3D" parent="NavigationRegion3D"]
+
+[node name="NavFloor" type="StaticBody3D" parent="NavigationRegion3D/NavSources" groups=["nav_source"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+collision_layer = 8
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/NavSources/NavFloor"]
+shape = SubResource("NavFloorShape")
+
+[node name="NavBox1" type="StaticBody3D" parent="NavigationRegion3D/NavSources" groups=["nav_source"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 2, -8)
+collision_layer = 8
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/NavSources/NavBox1"]
+shape = SubResource("NavBoxSmall")
+
+[node name="NavBox2" type="StaticBody3D" parent="NavigationRegion3D/NavSources" groups=["nav_source"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 2, -10)
+collision_layer = 8
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/NavSources/NavBox2"]
+shape = SubResource("NavBoxSmall")
+
+[node name="NavBox3" type="StaticBody3D" parent="NavigationRegion3D/NavSources" groups=["nav_source"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -14)
+collision_layer = 8
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/NavSources/NavBox3"]
+shape = SubResource("NavBoxBig")
+
+[node name="NavBox4" type="StaticBody3D" parent="NavigationRegion3D/NavSources" groups=["nav_source"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 2, 2)
+collision_layer = 8
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="NavigationRegion3D/NavSources/NavBox4"]
+shape = SubResource("NavBoxSmall")

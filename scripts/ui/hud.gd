@@ -6,6 +6,7 @@ extends CanvasLayer
 @onready var ammo_label: Label = $AmmoLabel
 @onready var health_label: Label = $HealthLabel
 @onready var score_label: Label = $ScoreLabel
+@onready var weapon_label: Label = $WeaponLabel
 
 var score: int = 0
 
@@ -15,6 +16,7 @@ func _ready() -> void:
 	Events.ammo_changed.connect(_on_ammo_changed)
 	Events.player_health_changed.connect(_on_health_changed)
 	Events.enemy_died.connect(_on_enemy_died)
+	Events.weapon_changed.connect(_on_weapon_changed)
 	_update_score()
 
 
@@ -29,6 +31,10 @@ func _on_health_changed(current: float, max_health: float) -> void:
 func _on_enemy_died(_enemy: Node) -> void:
 	score += 1
 	_update_score()
+
+
+func _on_weapon_changed(weapon_name: String) -> void:
+	weapon_label.text = "Qurol: %s" % weapon_name
 
 
 func _update_score() -> void:

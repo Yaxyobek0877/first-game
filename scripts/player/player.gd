@@ -15,9 +15,10 @@ extends CharacterBody3D
 @export var gravity: float = 20.0             ## Tortishish (haqiqiy 9.8 dan kattaroq — "tezroq" his uchun)
 @export var mouse_sensitivity: float = 0.0025 ## Sichqoncha sezgirligi
 
-# --- Jon (keyingi bosqichda dushmanlar zarar yetkazadi) ---
+# --- Jon ---
 @export var max_health: float = 100.0
 var health: float
+var _is_dead: bool = false       ## O'lim oqimi faqat bir marta ishlashi uchun (qayta o'lmaslik)
 
 # --- Sahnadagi tugunlarga havola (@onready — sahna yuklangach to'ldiriladi) ---
 @onready var head: Node3D = $Head             ## Yuqoriga/pastga qarash shu tugunni aylantiradi
@@ -26,6 +27,10 @@ var health: float
 
 func _ready() -> void:
 	health = max_health
+	# Dushman o'yinchini topa olishi uchun "player" guruhiga qo'shamiz.
+	# Dushman get_tree().get_first_node_in_group("player") orqali bizni topadi —
+	# qattiq yo'l (path) yozmasdan, decoupling saqlanadi.
+	add_to_group("player")
 	# O'yin boshlanganda sichqonchani "qamab" qo'yamiz — ekrandan chiqib ketmaydi.
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	# HUD boshlang'ich jonni ko'rsatishi uchun signal yuboramiz.
@@ -76,8 +81,10 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 
-## Dushmanlar chaqirishi uchun (keyingi bosqich). Hozircha tayyor turadi.
+## Dushmanlar shu funksiyani chaqirib o'yinchiga zarar yetkazadi.
 func take_damage(amount: float) -> void:
+	if _is_dead:
+		return
 	health = maxf(0.0, health - amount)
 	Events.player_health_changed.emit(health, max_health)
 	if health <= 0.0:
@@ -85,9 +92,18 @@ func take_damage(amount: float) -> void:
 
 
 func _die() -> void:
-	# Hozircha shunchaki sichqonchani bo'shatamiz. Keyin "O'yin tugadi" ekrani qo'shamiz.
+	if _is_dead:
+		return
+	_is_dead = true
+	# Sichqonchani bo'shatamiz va o'yinchini "muzlatamiz" (boshqaruvni o'chiramiz).
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	print("O'yinchi halok bo'ldi! (keyingi bosqichda qayta tug'ilish qo'shiladi)")
+	set_physics_process(false)        # harakat to'xtaydi
+	set_process_unhandled_input(false)  # qarash/Esc to'xtaydi
+	# "O'yin tugadi" ekrani shu signalni eshitadi va pauzani O'ZI qo'yadi.
+	# DIQQAT: pauzani BU YERDA qo'ymaymiz — aks holda GameOver UI ham muzlab,
+	# qayta boshlash tugmasi ishlamay qolishi mumkin.
+	Events.player_died.emit()
+	print("O'yinchi halok bo'ldi!")
 
 
 func _toggle_mouse_capture() -> void:

@@ -17,3 +17,9 @@ signal player_health_changed(current: float, max_health: float)
 
 ## Dushman/nishon yo'q qilinganda. Ochko sanash uchun ishlatiladi.
 signal enemy_died(enemy: Node)
+
+## O'yinchi halok bo'lganda yuboriladi. "O'yin tugadi" (GameOver) ekrani eshitadi.
+signal player_died()
+
+## Qurol almashtirilganda yuboriladi (1/2 tugmalari). HUD WeaponLabel'ni yangilaydi.
+signal weapon_changed(weapon_name: String)

@@ -16,6 +16,8 @@ metallic = 0.6
 roughness = 0.4
 
 [node name="Player" type="CharacterBody3D"]
+collision_layer = 2
+collision_mask = 5
 script = ExtResource("1")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
@@ -33,6 +35,7 @@ script = ExtResource("2")
 
 [node name="RayCast3D" type="RayCast3D" parent="Head/Camera3D/Weapon"]
 target_position = Vector3(0, 0, -1000)
+collision_mask = 5
 
 [node name="GunMesh" type="MeshInstance3D" parent="Head/Camera3D/Weapon"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.25, -0.25, -0.5)

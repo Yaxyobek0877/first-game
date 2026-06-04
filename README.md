@@ -5,14 +5,22 @@ o'rganish maqsadida qurilmoqda. Bu mening birinchi o'yin loyiham.
 
 ---
 
-## 🎯 Hozir nima ishlaydi (1-bosqich: Vertical Slice)
+## 🎯 Hozir nima ishlaydi (1–2 bosqich)
 
+**1-bosqich — Vertical Slice:**
 - ✅ FPS yurish (WASD), yugurish (Shift), sakrash (Space)
 - ✅ Sichqoncha bilan atrofga qarash
 - ✅ Otish (hitscan / lahzali nur) + uchqun effekti
 - ✅ Otiladigan nishonlar (zarar olib, yo'qoladi)
 - ✅ HUD: o'q-dori, jon, ochko
 - ✅ Greybox arena (yer, devorlar, panalar)
+
+**2-bosqich — Jang tizimi:**
+- ✅ Tirik AI dushman: o'yinchini ko'rib, navmesh bo'ylab ta'qib qiladi (NavigationAgent3D)
+- ✅ Dushman yaqin masofadan hujum qiladi → o'yinchi jon yo'qotadi
+- ✅ "O'yin tugadi" ekrani + qayta boshlash
+- ✅ 2 qurol turi — **Avtomat** (tez/zaif) va **Miltiq** (sekin/kuchli), `1`/`2` bilan almashtirish
+- ✅ Hikoya asosi: `docs/SENARIY.md` («QAYTISH»)
 
 ## 🕹️ Boshqaruv
 
@@ -24,6 +32,7 @@ o'rganish maqsadida qurilmoqda. Bu mening birinchi o'yin loyiham.
 | `Sichqoncha` | Qarash |
 | `Chap tugma` | Otish |
 | `R` | Qayta o'qlash |
+| `1` / `2` | Qurol almashtirish (Avtomat / Miltiq) |
 | `Esc` | Sichqonchani bo'shatish (pauza) |
 
 ## ▶️ Qanday ishga tushirish
@@ -69,7 +78,8 @@ first_game/
 
 - [x] **0. Asoslar** — loyiha, tuzilish, input
 - [x] **1. Vertical Slice** — FPS yadro, otish, nishon, HUD
-- [ ] **2. Jang tizimi** — AI dushman, qurol turlari, jon/zarar balansi
+- [x] **2. Jang tizimi** — AI dushman, qurol turlari, jon/zarar balansi
 - [ ] **3. Arena janglari** — to'lqinli dushmanlar, bir nechta arena, ochko
-- [ ] **4. Sarguzasht/syujet** — darajalar, hikoya, NPC, maqsadlar
+- [ ] **4. Kampaniya/syujet** — `docs/SENARIY.md` («QAYTISH») — avval PROLOG
 - [ ] **5. Sayqal** — tovush, effektlar, menyu, saqlash, optimizatsiya
+- [ ] **6. Ko'p o'yinchilik** — 5v5 + xona (ilg'or/uzoq muddatli)
