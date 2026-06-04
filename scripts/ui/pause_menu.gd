@@ -5,13 +5,17 @@ extends CanvasLayer
 ## davom ettirib bo'lmaydi). O'yinchi halok bo'lganda (game over) ishlamaydi —
 ## o'sha holatni GameOver ekrani boshqaradi.
 
+const SETTINGS_SCENE := preload("res://scenes/ui/settings_menu.tscn")
+
 @onready var resume_button: Button = $Panel/CenterContainer/VBoxContainer/ResumeButton
 @onready var restart_button: Button = $Panel/CenterContainer/VBoxContainer/RestartButton
+@onready var settings_button: Button = $Panel/CenterContainer/VBoxContainer/SettingsButton
 @onready var menu_button: Button = $Panel/CenterContainer/VBoxContainer/MenuButton
 @onready var quit_button: Button = $Panel/CenterContainer/VBoxContainer/QuitButton
 
 var _paused: bool = false
 var _game_over: bool = false   ## O'yin tugagach Esc pauza menyusini ochmasin
+var _settings_open: bool = false  ## Sozlanmalar overlay ochiqmi (Esc shunda pauzani almashtirmasin)
 
 
 func _ready() -> void:
@@ -20,6 +24,7 @@ func _ready() -> void:
 	Events.player_died.connect(_on_player_died)
 	resume_button.pressed.connect(_resume)
 	restart_button.pressed.connect(_on_restart)
+	settings_button.pressed.connect(_on_settings)
 	menu_button.pressed.connect(_on_main_menu)
 	quit_button.pressed.connect(_on_quit)
 
@@ -29,11 +34,22 @@ func _on_player_died() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if event.is_action_pressed("pause") and not _game_over:
+	# Sozlanmalar overlay ochiq bo'lsa — Esc o'sha overlay'ni yopadi (bu yerda emas).
+	if event.is_action_pressed("pause") and not _game_over and not _settings_open:
 		if _paused:
 			_resume()
 		else:
 			_pause()
+
+
+## Pauza menyusidan sozlanmalarni ustiga (overlay) ochadi.
+func _on_settings() -> void:
+	var s := SETTINGS_SCENE.instantiate()
+	add_child(s)
+	_settings_open = true
+	s.closed.connect(func() -> void:
+		_settings_open = false
+		resume_button.grab_focus())
 
 
 func _pause() -> void:

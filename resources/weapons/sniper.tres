@@ -14,3 +14,6 @@ max_range = 1500.0
 zoom_fov = 22.0
 reload_time = 1.9
 is_scope = true
+model_node = "SniperModel"
+view_model = "res://assets/models/sniper.glb"
+sfx_path = "res://assets/audio/shot.wav"

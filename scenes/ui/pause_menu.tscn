@@ -54,6 +54,11 @@ layout_mode = 2
 text = "Qayta boshlash"
 theme_override_font_sizes/font_size = 22
 
+[node name="SettingsButton" type="Button" parent="Panel/CenterContainer/VBoxContainer"]
+layout_mode = 2
+text = "Sozlamalar"
+theme_override_font_sizes/font_size = 22
+
 [node name="MenuButton" type="Button" parent="Panel/CenterContainer/VBoxContainer"]
 layout_mode = 2
 text = "Bosh menyu"

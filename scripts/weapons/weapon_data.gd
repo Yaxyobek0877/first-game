@@ -20,3 +20,8 @@ class_name WeaponData
                                               ## Snayper uchun kichik (kuchli zoom), avtomat uchun o'rta.
 @export var reload_time: float = 1.4          ## Qayta o'qlash davomiyligi (s) — animatsiya bilan.
 @export var is_scope: bool = false            ## true = aim qilganda durbin (scope) overlay ko'rsatiladi (snayper).
+
+# --- Modellar va tovush (loadout/avatar tizimi uchun) ---
+@export var model_node: String = "AvtomatModel"  ## player.tscn ichidagi FP viewmodel tugun nomi
+@export var view_model: String = ""              ## avatar/loadout ekrani 3D preview uchun .glb yo'li
+@export var sfx_path: String = "res://assets/audio/shot.wav"  ## otish tovushi (WAV)

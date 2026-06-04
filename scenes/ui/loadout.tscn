@@ -1,0 +1,172 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/loadout.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/ui/menu/menu_background.png" id="2"]
+[ext_resource type="PackedScene" path="res://assets/models/aros_soldier.glb" id="3"]
+
+[sub_resource type="Environment" id="Env"]
+background_mode = 1
+background_color = Color(0.1, 0.11, 0.14, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.78, 0.79, 0.85, 1)
+ambient_light_energy = 1.1
+tonemap_mode = 2
+
+[node name="Loadout" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="Background" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Scrim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.04, 0.04, 0.06, 0.5)
+
+[node name="HBox" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 0
+
+[node name="ViewportContainer" type="SubViewportContainer" parent="HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+stretch = true
+
+[node name="SubViewport" type="SubViewport" parent="HBox/ViewportContainer"]
+own_world_3d = true
+transparent_bg = true
+handle_input_locally = false
+size = Vector2i(760, 720)
+render_target_update_mode = 4
+
+[node name="Environment" type="WorldEnvironment" parent="HBox/ViewportContainer/SubViewport"]
+environment = SubResource("Env")
+
+[node name="Sun" type="DirectionalLight3D" parent="HBox/ViewportContainer/SubViewport"]
+transform = Transform3D(0.86, -0.25, 0.44, 0, 0.86, 0.5, -0.5, -0.43, 0.75, 0, 5, 0)
+light_energy = 1.6
+shadow_enabled = true
+
+[node name="Camera3D" type="Camera3D" parent="HBox/ViewportContainer/SubViewport"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 3.1)
+current = true
+fov = 60.0
+
+[node name="AvatarPivot" type="Node3D" parent="HBox/ViewportContainer/SubViewport"]
+unique_name_in_owner = true
+
+[node name="Avatar" parent="HBox/ViewportContainer/SubViewport/AvatarPivot" instance=ExtResource("3")]
+
+[node name="WeaponHolder" type="Node3D" parent="HBox/ViewportContainer/SubViewport/AvatarPivot"]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.05, 0.45)
+
+[node name="RightPanel" type="PanelContainer" parent="HBox"]
+custom_minimum_size = Vector2(430, 0)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Margin" type="MarginContainer" parent="HBox/RightPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 30
+theme_override_constants/margin_top = 30
+theme_override_constants/margin_right = 30
+theme_override_constants/margin_bottom = 30
+
+[node name="VBox" type="VBoxContainer" parent="HBox/RightPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="HBox/RightPanel/Margin/VBox"]
+layout_mode = 2
+text = "Avatar / Jihoz"
+theme_override_font_sizes/font_size = 36
+
+[node name="Hint" type="Label" parent="HBox/RightPanel/Margin/VBox"]
+layout_mode = 2
+text = "Har bir slotga qurol tanlang. Tanlangani avatarda ko'rinadi."
+autowrap_mode = 3
+theme_override_colors/font_color = Color(0.78, 0.76, 0.7, 1)
+theme_override_font_sizes/font_size = 16
+
+[node name="Slot1Row" type="HBoxContainer" parent="HBox/RightPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Slot1Label" type="Label" parent="HBox/RightPanel/Margin/VBox/Slot1Row"]
+custom_minimum_size = Vector2(70, 0)
+layout_mode = 2
+text = "1-slot"
+theme_override_font_sizes/font_size = 22
+
+[node name="Slot1Option" type="OptionButton" parent="HBox/RightPanel/Margin/VBox/Slot1Row"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 20
+
+[node name="Slot2Row" type="HBoxContainer" parent="HBox/RightPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Slot2Label" type="Label" parent="HBox/RightPanel/Margin/VBox/Slot2Row"]
+custom_minimum_size = Vector2(70, 0)
+layout_mode = 2
+text = "2-slot"
+theme_override_font_sizes/font_size = 22
+
+[node name="Slot2Option" type="OptionButton" parent="HBox/RightPanel/Margin/VBox/Slot2Row"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 20
+
+[node name="StatsLabel" type="Label" parent="HBox/RightPanel/Margin/VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+text = "..."
+theme_override_colors/font_color = Color(0.86, 0.85, 0.8, 1)
+theme_override_font_sizes/font_size = 18
+
+[node name="Spacer" type="Control" parent="HBox/RightPanel/Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="StartButton" type="Button" parent="HBox/RightPanel/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Jangga kirish"
+theme_override_font_sizes/font_size = 26
+
+[node name="BackButton" type="Button" parent="HBox/RightPanel/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Orqaga"
+theme_override_font_sizes/font_size = 22

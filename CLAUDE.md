@@ -30,15 +30,18 @@ Bu — foydalanuvchining **birinchi o'yini**. Maqsad: AI yordamida o'yin yaratis
 | 5. Sayqal | Bosh/pauza menyu ✅ · SFX (placeholder) ✅ · tracer/muzzle/qon ✅ · optimizatsiya/saqlash ⬜ | 🔄 Qisman |
 | 6. Ko'p o'yinchilik | 5v5 janglar + xona (room) ochish — ilg'or/uzoq muddatli | ⬜ |
 
-**Joriy o'yin (arena wave shooter):** bosh menyu «QAYTISH» → o'yin → Esc pauza → o'lim/qayta boshlash.
-To'lqin-to'lqin dushmanlar (melee + ranged Kron askarlari), 2 qurol (**Avtomat** auto + **Snayper**
-durbin/zoom), reload animatsiyasi, jon regen + zarar qizil chaqnashi + hit-marker, jasadlar yerda
-qoladi + qon, tracer/muzzle flash, ochko/rekord, 56×56 arena (8 pana, xandaq bezagi).
+**Joriy o'yin (arena wave shooter):** bosh menyu «QAYTISH» → (Avatar/Jihoz · Sozlamalar) → o'yin →
+Esc pauza (Sozlamalar) → o'lim/qayta boshlash. To'lqin-to'lqin dushmanlar (melee + ranged Kron
+askarlari, bir-biridan itariladi — ustma-ust to'planmaydi), **3 qurol** avatar/jihoz ekranida slot 1/2
+ga tanlanadi (**Topponcha** · **Avtomat** auto · **Snayper** durbin/zoom), reload animatsiyasi, jon
+regen + zarar qizil chaqnashi + hit-marker, jasadlar yerda qoladi + qon, tracer/muzzle flash,
+ochko/rekord, 56×56 arena (8 pana + 2 minora + bochka/voronka/qum-qop bezak). Menyu/avatar/sozlanmalarda
+**fon musiqasi** (Music shinasi), tugmalarda klik tovushi; ovoz/sezgirlik/ekran — **Sozlamalar** menyusi.
 
 **Tekshiruv eslatmasi:** bosh sahna endi `main_menu.tscn` — gameplay'ni alohida test qiling:
 `<exe> --headless --path D:\first_game res://scenes/main.tscn --fixed-fps 60 --quit-after 1500`
 → toza bo'lsa stderr bo'sh (eslatma: 30s+ run'da "Pages in use at exit" — bu majburiy yopishda
-tirik jasadlardan, ZARARSIZ). Navmesh ~120 ko'pburchak; dushman shimoldan o'yinchini (z=20) o'ldiradi.
+tirik jasadlardan, ZARARSIZ). Navmesh ~210 ko'pburchak (minoralar/bezaklar bilan); dushman shimoldan o'yinchini (z=20) o'ldiradi.
 
 ---
 
@@ -65,7 +68,8 @@ tirik jasadlardan, ZARARSIZ). Navmesh ~120 ko'pburchak; dushman shimoldan o'yinc
 
 ## 🏗️ Arxitektura
 
-- **Signal bus (`Events` autoload)** — `scripts/autoload/events.gd`. Sahnalar bir-birini bilmaydi; signal orqali "gaplashadi" (decoupling). Signallar: `ammo_changed`, `player_health_changed`, `enemy_died`, `player_died`, `weapon_changed`. Yangi global hodisalarni shu yerga qo'shing.
+- **Signal bus (`Events` autoload)** — `scripts/autoload/events.gd`. Sahnalar bir-birini bilmaydi; signal orqali "gaplashadi" (decoupling). Signallar: `ammo_changed`, `player_health_changed`, `enemy_died`, `player_died`, `weapon_changed`, `wave_started`, `target_hit`, `scoped`. Yangi global hodisalarni shu yerga qo'shing.
+- **Boshqa autoloadlar:** `GameSettings` (ovoz/sezgirlik/ekran → `user://settings.cfg`, AudioServer shinalariga yozadi), `MusicPlayer` (Music shinasida fon musiqasi, crossfade), `Loadout` (tanlangan qurol slotlari → `user://loadout.cfg`; weapon.gd `get_weapons()` orqali o'qiydi), `UiSound` (har tugmaga klik tovushini avto-ulaydi). Audio shinalari: `default_bus_layout.tres` — Master/Music/SFX.
 - **Scene-per-concept** — har bir mantiqiy bo'lak alohida `.tscn` (player, world, enemy, ui).
 - **`@export` tunables** — tezlik, zarar, jon kabi qiymatlar Inspector orqali sozlanadi (kodga tegmasdan).
 - **Player** — `CharacterBody3D`; harakat `_physics_process` ichida, qarash `_unhandled_input` ichida. `"player"` guruhida (dushman uni topadi).
@@ -108,7 +112,7 @@ first_game/
 
 ## 🎮 Boshqaruv
 
-`WASD` yurish · sichqoncha qarash · chap tugma otish · **o'ng tugma — aim/zoom** · `Shift` yugurish · `Space` sakrash · `R` qayta o'qlash · `1`/`2` qurol (Avtomat/Snayper) · `Esc` pauza menyu.
+`WASD` yurish · sichqoncha qarash · chap tugma otish · **o'ng tugma — aim/zoom** · `Shift` yugurish · `Space` sakrash · `R` qayta o'qlash · `1`/`2` qurol (avatar/jihoz ekranida tanlangan 2 slot) · `Esc` pauza menyu (Sozlamalar). Bosh menyu: **Avatar / Jihoz** (qurol tanlash) · **Sozlamalar** (ovoz/sezgirlik/ekran).
 
 ---
 

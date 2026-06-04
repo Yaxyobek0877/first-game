@@ -21,7 +21,8 @@ var _ammo_counts: Array[int] = []
 var _cooldown: float = 0.0             ## Keyingi otishgacha qolgan vaqt
 
 # --- Viewmodel animatsiyasi (recoil / equip / bob) ---
-var _base_pos: Array[Vector3] = []     ## Har model'ning asl (base) joyi
+var _model_nodes: Dictionary = {}      ## nom (String) -> Node3D (viewmodel)
+var _base_pos: Dictionary = {}         ## nom (String) -> Vector3 (model'ning asl joyi)
 var _recoil: Vector3 = Vector3.ZERO    ## Otishda tepish (decay bilan nolga qaytadi)
 var _equip_t: float = 0.0              ## Qurol olish (pastdan ko'tarilish): 0 -> 1
 var _time: float = 0.0                 ## Yengil tebranish (bob) uchun
@@ -30,9 +31,8 @@ var _shot_player: AudioStreamPlayer    ## Otish tovushi
 @onready var ray: RayCast3D = $RayCast3D     ## Nishonni aniqlaydigan nur
 @onready var muzzle: Marker3D = $Muzzle      ## Quvur uchi (effekt chiqadigan nuqta)
 @onready var _flash: MeshInstance3D = $Muzzle/MuzzleFlash  ## Otish alangasi (toggle)
-## Qurol 3D modellari — tartibi `weapons` bilan bir xil (0=Avtomat, 1=Snayper).
-## Faol qurolniki ko'rinadi, qolgani yashiriladi.
-@onready var _models: Array[Node3D] = [$AvtomatModel, $SniperModel]
+## Qurol 3D modellari (viewmodel) Weapon ostidagi "...Model" bolalardan _ready'da yig'iladi.
+## Faol qurol model_node'iga mos modelgina ko'rinadi (qolgani yashiriladi).
 ## Kamera (Weapon tuguni Camera3D ostida) — aim/zoom uchun.
 @onready var _camera: Camera3D = get_parent() as Camera3D
 var _default_fov: float = 75.0
@@ -47,8 +47,18 @@ func _ready() -> void:
 	# Zoom uchun kameraning asl FOV'ini saqlaymiz.
 	if _camera != null:
 		_default_fov = _camera.fov
-	# Agar Inspector'da qurollar berilmagan bo'lsa — standart ikkitasini yuklaymiz.
+
+	# Viewmodel'larni nom bo'yicha yig'amiz ("...Model" bilan tugaydiganlar) va yashiramiz.
+	for child in get_children():
+		if child is Node3D and child.name.ends_with("Model"):
+			_model_nodes[child.name] = child
+			_base_pos[child.name] = child.position
+			child.visible = false
+
+	# Qurollar: Inspector'da berilmagan bo'lsa — tanlangan jihozdan (Loadout) olamiz.
 	if weapons.is_empty():
+		weapons = Loadout.get_weapons()
+	if weapons.is_empty():   # zaxira (Loadout bo'sh bo'lib qolsa)
 		weapons = [
 			load("res://resources/weapons/pistol.tres"),   # Avtomat (tez/zaif)
 			load("res://resources/weapons/sniper.tres"),    # Snayper (sekin/kuchli, durbin)
@@ -66,15 +76,10 @@ func _ready() -> void:
 	if body != null:
 		ray.add_exception(body)
 
-	# Viewmodel animatsiyasi uchun har model'ning asl joyini saqlaymiz.
-	_base_pos.resize(_models.size())
-	for i in _models.size():
-		if _models[i] != null:
-			_base_pos[i] = _models[i].position
-
-	# Otish tovushi pleyeri (WAV — protsedural SFX).
+	# Otish tovushi pleyeri (WAV — protsedural SFX). "SFX" shinasiga ulanadi.
+	# Stream faol qurolga qarab _apply_active_weapon'da o'rnatiladi.
 	_shot_player = AudioStreamPlayer.new()
-	_shot_player.stream = load("res://assets/audio/shot.wav")
+	_shot_player.bus = "SFX"
 	add_child(_shot_player)
 
 	# Boshlang'ich o'q-dori va qurol nomini HUD'ga yuboramiz.
@@ -126,6 +131,11 @@ func _active() -> Resource:
 	return weapons[_current_index]
 
 
+## Faol qurolga mos viewmodel tugunini qaytaradi (model_node bo'yicha). Yo'q bo'lsa null.
+func _active_model() -> Node3D:
+	return _model_nodes.get(_active().model_node, null)
+
+
 ## Berilgan slotga o'tadi (agar mavjud va boshqa bo'lsa).
 func _switch_to(index: int) -> void:
 	if index < 0 or index >= weapons.size():
@@ -149,6 +159,9 @@ func _apply_active_weapon() -> void:
 	var w: Resource = _active()
 	Events.ammo_changed.emit(_ammo_counts[_current_index], w.max_ammo)
 	Events.weapon_changed.emit(w.display_name)
+	# Faol qurolning otish tovushini o'rnatamiz (topponcha/avtomat farqli).
+	if _shot_player != null and w.sfx_path != "":
+		_shot_player.stream = load(w.sfx_path)
 	_show_active_model()
 
 
@@ -171,24 +184,25 @@ func _update_zoom(delta: float) -> void:
 
 ## Faqat faol qurol modelini ko'rsatadi (qolganini yashiradi).
 func _show_active_model() -> void:
-	for i in _models.size():
-		if _models[i] != null:
-			_models[i].visible = (i == _current_index)
+	var key: String = _active().model_node
+	for name in _model_nodes:
+		_model_nodes[name].visible = (name == key)
 
 
 ## Faol qurolni recoil + equip + bob offsetlari bilan asl joyiga nisbatan suradi.
 func _update_viewmodel() -> void:
-	if _current_index >= _models.size() or _models[_current_index] == null:
+	if weapons.is_empty():
 		return
-	if _current_index >= _base_pos.size():
+	var m: Node3D = _active_model()
+	if m == null:
 		return
-	var m: Node3D = _models[_current_index]
+	var base: Vector3 = _base_pos.get(_active().model_node, Vector3.ZERO)
 	# Aim qilganda bob kamayadi (tinch nishon).
 	var bob := Vector3(sin(_time * 1.8) * 0.003, sin(_time * 3.6) * 0.003, 0.0) * (1.0 - _aim_t)
 	# equip: 0 da pastroq/orqaroq, 1 da asl joyda
 	var equip := (1.0 - _equip_t) * Vector3(0.05, -0.14, 0.05)
 	# ADS: aim qilganda qurol markazga (x->0) va biroz oldinga/tepaga olinadi.
-	var bx: float = _base_pos[_current_index].x
+	var bx: float = base.x
 	var aim := _aim_t * Vector3(-bx * 0.92, 0.03, 0.05)
 	# Reload: qurol pasayadi (o'rtada eng past) — magazin almashish hissi.
 	var reload_dip := Vector3.ZERO
@@ -197,7 +211,7 @@ func _update_viewmodel() -> void:
 		reload_dip = Vector3(0.04, -0.20 * d, 0.0)
 	# Durbin orqali qaraganda qurol modeli yashiriladi.
 	m.visible = not _scoped
-	m.position = _base_pos[_current_index] + _recoil + bob + equip + aim + reload_dip
+	m.position = base + _recoil + bob + equip + aim + reload_dip
 
 
 ## Quvur uchidagi doimiy alanga tugunini qisqa vaqt ko'rsatadi (otish his uchun).
@@ -248,6 +262,8 @@ func _shoot() -> void:
 	if _shot_player != null and _shot_player.stream != null:
 		_shot_player.pitch_scale = randf_range(0.92, 1.08)   # ozgina o'zgarish — bir xil bo'lmasin
 		_shot_player.play()
+	# Otish ovozi — yaqindagi dushmanlar "eshitadi" va tovush kelgan joyni tekshiradi.
+	Events.player_fired.emit(muzzle.global_position)
 
 	# Nurning uzunligini qurol masofasiga moslaymiz va shu kadrda yangilaymiz.
 	ray.target_position = Vector3(0.0, 0.0, -w.max_range)

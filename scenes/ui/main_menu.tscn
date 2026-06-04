@@ -70,6 +70,16 @@ layout_mode = 2
 text = "Boshlash"
 theme_override_font_sizes/font_size = 26
 
+[node name="LoadoutButton" type="Button" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+text = "Avatar / Jihoz"
+theme_override_font_sizes/font_size = 26
+
+[node name="SettingsButton" type="Button" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+text = "Sozlamalar"
+theme_override_font_sizes/font_size = 26
+
 [node name="QuitButton" type="Button" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
 text = "Chiqish"

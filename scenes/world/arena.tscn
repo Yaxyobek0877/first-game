@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://scripts/world/arena.gd" id="1"]
 [ext_resource type="PackedScene" path="res://assets/models/trench_dressing.glb" id="2"]
 [ext_resource type="Texture2D" path="res://assets/textures/ground_mud.png" id="3"]
-[ext_resource type="Texture2D" path="res://assets/textures/sandbags.png" id="4"]
+[ext_resource type="Texture2D" path="res://assets/textures/battle_backdrop.png" id="4"]
 [ext_resource type="Texture2D" path="res://assets/textures/wood_planks.png" id="5"]
 
 [sub_resource type="ProceduralSkyMaterial" id="Sky_mat"]
@@ -30,10 +30,12 @@ uv1_scale = Vector3(0.2, 0.2, 0.2)
 roughness = 1.0
 
 [sub_resource type="StandardMaterial3D" id="Mat_wall"]
-albedo_color = Color(0.82, 0.8, 0.76, 1)
+albedo_color = Color(1, 1, 1, 1)
 albedo_texture = ExtResource("4")
-uv1_scale = Vector3(0.2, 0.34, 0.2)
-roughness = 0.9
+uv1_scale = Vector3(2.33, 1, 1)
+shading_mode = 0
+texture_filter = 1
+roughness = 1.0
 
 [sub_resource type="StandardMaterial3D" id="Mat_box"]
 albedo_color = Color(0.85, 0.82, 0.78, 1)

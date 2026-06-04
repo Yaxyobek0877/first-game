@@ -343,6 +343,79 @@ def make_rusted_metal(size=512):
 
 
 # =====================================================================
+# 10) Backdrop: keng, gorizontal-seamless jang maydoni ufqi (arena devorlari uchun)
+#     Tepada g'amgin osmon (amber gradient), ufqda tutun + vayrona siluetlari, pastda tuproq.
+# =====================================================================
+def make_backdrop(W=2048, H=512):
+	random.seed(31)
+	img = Image.new("RGB", (W, H), (0, 0, 0)); px = img.load()
+	horizon = int(H * 0.62)
+	top = (40, 46, 58); hor = (158, 100, 56)       # osmon: tepa -> ufq
+	g_top = (60, 48, 36); g_bot = (24, 19, 14)     # tuproq: ufq -> past
+	for y in range(H):
+		if y < horizon:
+			t = y / max(1, horizon)
+			c = (int(top[0] + (hor[0] - top[0]) * t),
+				 int(top[1] + (hor[1] - top[1]) * t),
+				 int(top[2] + (hor[2] - top[2]) * t))
+		else:
+			t = (y - horizon) / max(1, H - horizon)
+			c = (int(g_top[0] + (g_bot[0] - g_top[0]) * t),
+				 int(g_top[1] + (g_bot[1] - g_top[1]) * t),
+				 int(g_top[2] + (g_bot[2] - g_top[2]) * t))
+		for x in range(W):
+			px[x, y] = c
+	# quyosh yorug'i ufqda
+	glow = Image.new("RGBA", (W, H), (0, 0, 0, 0)); gd = ImageDraw.Draw(glow)
+	gx = W // 2
+	gd.ellipse((gx - 280, horizon - 130, gx + 280, horizon + 130), fill=(235, 155, 75, 130))
+	glow = glow.filter(ImageFilter.GaussianBlur(70))
+	img = Image.alpha_composite(img.convert("RGBA"), glow).convert("RGB")
+	# tutun ustunlari (seamless: x, x-W, x+W)
+	smoke = Image.new("RGBA", (W, H), (0, 0, 0, 0)); sd = ImageDraw.Draw(smoke)
+	for _ in range(7):
+		sx = random.randint(0, W); ty = random.randint(int(H * 0.12), int(H * 0.40))
+		wd = random.randint(34, 76)
+		for ox in (0, -W, W):
+			sd.polygon([(sx + ox - wd, horizon), (sx + ox + wd, horizon),
+						(sx + ox + wd // 2, ty), (sx + ox - wd // 2, ty)], fill=(44, 40, 42, 95))
+	smoke = smoke.filter(ImageFilter.GaussianBlur(30))
+	img = Image.alpha_composite(img.convert("RGBA"), smoke).convert("RGB")
+	# ufq siluetlari: vayrona devor / singan daraxt / qoldiq (seamless)
+	d = ImageDraw.Draw(img)
+	sil = (20, 18, 20)
+	x = 0
+	while x < W:
+		kind = random.random()
+		bw = random.randint(24, 96)
+		bh = random.randint(int(H * 0.05), int(H * 0.17))
+		ty = horizon - bh
+		for ox in (0, -W, W):
+			xx = x + ox
+			if kind < 0.42:        # vayrona devor bo'lagi (notekis tepa)
+				d.rectangle((xx, ty, xx + bw, horizon), fill=sil)
+				d.polygon([(xx, ty), (xx + bw // 3, ty - bh // 3),
+						   (xx + 2 * bw // 3, ty + bh // 6), (xx + bw, ty)], fill=sil)
+			elif kind < 0.72:      # singan daraxt / ustun
+				tw = max(3, bw // 8); cx = xx + bw // 2
+				d.rectangle((cx - tw, horizon - int(bh * 1.7), cx + tw, horizon), fill=sil)
+			else:                  # past qoldiq tepalik
+				d.ellipse((xx, horizon - bh // 2, xx + bw, horizon + bh // 3), fill=sil)
+		x += random.randint(46, 140)
+	# ufq dud-haze (yumshoq band)
+	haze = Image.new("RGBA", (W, H), (0, 0, 0, 0)); hd = ImageDraw.Draw(haze)
+	hd.rectangle((0, horizon - 34, W, horizon + 30), fill=(160, 126, 102, 70))
+	haze = haze.filter(ImageFilter.GaussianBlur(22))
+	img = Image.alpha_composite(img.convert("RGBA"), haze).convert("RGB")
+	# umumiy don
+	noise = Image.effect_noise((W, H), 16).convert("RGB")
+	img = Image.blend(img, noise, 0.05)
+	img.save(os.path.join(TEX, "battle_backdrop.png"))
+	print("  backdrop: battle_backdrop.png %dx%d" % (W, H))
+	return img
+
+
+# =====================================================================
 #  Kontakt-varaq (preview) — barcha UI elementlarni bitta rasmda ko'rish uchun
 # =====================================================================
 def make_contact(icons, logo):
@@ -379,7 +452,8 @@ if __name__ == "__main__":
 	print("  logo shaffof:", "ok" if logo else "yo'q")
 	make_sandbags()
 	make_rusted_metal()
-	print("  teksturalar: sandbags, rusted_metal (tileable)")
+	make_backdrop()
+	print("  teksturalar: sandbags, rusted_metal (tileable), battle_backdrop")
 	make_contact([("crosshair", ch), ("hitmarker", hm), ("health", hp),
 				  ("ammo", am), ("avtomat", av), ("sniper", sn)], logo)
 	print("  preview: assets/art/_preview_ui.png")

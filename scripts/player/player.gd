@@ -38,9 +38,15 @@ func _ready() -> void:
 	add_to_group("player")
 	# O'yin boshlanganda sichqonchani "qamab" qo'yamiz — ekrandan chiqib ketmaydi.
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-	# Qadam tovushi pleyeri (WAV — protsedural SFX).
+	# Sichqoncha sezgirligini sozlanmalardan olamiz (jonli — o'zgarsa yangilanadi).
+	mouse_sensitivity = GameSettings.mouse_sensitivity
+	GameSettings.changed.connect(func() -> void: mouse_sensitivity = GameSettings.mouse_sensitivity)
+	# O'yin paytida musiqa eshitilmasin — menyu trekini silliq so'ndiramiz.
+	MusicPlayer.fade_out()
+	# Qadam tovushi pleyeri (WAV — protsedural SFX). "SFX" shinasiga ulanadi.
 	_step_player = AudioStreamPlayer.new()
 	_step_player.stream = load("res://assets/audio/footstep.wav")
+	_step_player.bus = "SFX"
 	add_child(_step_player)
 	# HUD boshlang'ich jonni ko'rsatishi uchun signal yuboramiz.
 	# call_deferred — HUD signalga ulanib ulgurishi uchun (aks holda birinchi zarbada

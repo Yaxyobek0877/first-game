@@ -32,3 +32,7 @@ signal target_hit()
 
 ## Snayperni aim qilganda (durbin). Scope overlay ko'rsatiladi, HUD crosshair yashiriladi.
 signal scoped(active: bool)
+
+## O'yinchi o'q uzganda (otish ovozi). Yaqindagi dushmanlar "eshitib" tovush kelgan
+## joyni tekshirishga boradi (idrok — eshitish). Dunyo koordinatasi yuboriladi.
+signal player_fired(world_pos: Vector3)

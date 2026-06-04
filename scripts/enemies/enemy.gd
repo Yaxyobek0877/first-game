@@ -20,6 +20,10 @@ enum State { IDLE, CHASE, ATTACK, DEAD }
 @export var move_speed: float = 3.5
 @export var gravity: float = 20.0
 
+# --- Bir-biridan itarilish (separation) — ustma-ust to'planib qolmaslik uchun ---
+@export var separation_radius: float = 1.5    ## Shu masofadagi boshqa dushmanlardan itariladi
+@export var separation_strength: float = 2.2  ## Itarilish kuchi (move_speed dan kichik)
+
 # --- Ko'rish masofalari (arena shooter — butun maydondan aggro) ---
 @export var sight_range: float = 65.0        ## Shu masofadan yaqin bo'lsa o'yinchini "ko'radi"
 @export var lose_sight_range: float = 80.0   ## Bundan uzoqlashsa ta'qibni to'xtatadi (gisterezis)
@@ -88,10 +92,34 @@ func _physics_process(delta: float) -> void:
 			velocity.x = 0.0
 			velocity.z = 0.0
 
+	# Tirik bo'lsa — yaqin dushmanlardan itariladi (ustma-ust to'planmasin).
+	# Ta'qibda ham, hujumda ham, jim turganda ham ishlaydi.
+	if _state != State.DEAD:
+		var sep: Vector3 = _separation()
+		velocity.x += sep.x
+		velocity.z += sep.z
+
 	_update_anim()
 
 	# DIQQAT: butun skriptda move_and_slide() FAQAT shu yerda — bir kadrda bir marta.
 	move_and_slide()
+
+
+## Yaqin (tirik) dushmanlardan itarilish vektori — boids "separation".
+## Yaqinroq bo'lsa kuchliroq itaradi; natija move_speed'dan oshmaydigan kuchga normallanadi.
+func _separation() -> Vector3:
+	var push := Vector3.ZERO
+	for o in get_tree().get_nodes_in_group("enemy"):
+		if o == self or not (o is Node3D):
+			continue
+		var away: Vector3 = global_position - (o as Node3D).global_position
+		away.y = 0.0
+		var d: float = away.length()
+		if d > 0.001 and d < separation_radius:
+			push += away.normalized() * (1.0 - d / separation_radius)
+	if push.length() > 0.001:
+		push = push.normalized() * separation_strength
+	return push
 
 
 # --- Holat funksiyalari ---
