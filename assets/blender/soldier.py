@@ -120,6 +120,8 @@ BONE_OF = {
     "Boot.L": "LegL", "Leg.L": "LegL",
     "Boot.R": "LegR", "Leg.R": "LegR",
     "Torso": "Spine", "Belt": "Spine", "Collar": "Spine",
+    "Shoulders": "Spine", "Backpack": "Spine", "Pouch.L": "Spine",
+    "Pouch.R": "Spine", "Strap": "Spine", "Canteen": "Spine",
     "Arm.L": "ArmL", "Hand.L": "ArmL",
     "Arm.R": "ArmR", "Hand.R": "ArmR", "Rifle": "ArmR", "Bayonet": "ArmR",
     "Neck": "Head", "Head": "Head", "HelmetDome": "Head", "HelmetBrim": "Head",
@@ -162,6 +164,7 @@ def build_soldier(faction, cfg):
     ACCENT = make_material(faction + "_Accent", cfg["accent"])
     WOOD = make_material(faction + "_RifleWood", (0.28, 0.16, 0.09))
     METAL = make_material(faction + "_RifleMetal", (0.55, 0.57, 0.60), rough=0.4, metal=0.6)
+    PACK = make_material(faction + "_Pack", (0.30, 0.26, 0.18), rough=0.95)  # kanvas/jihoz
 
     # --- Qismlar (Blender: Z tepaga, oyoq Z=0 da, bo'y ~1.85 m) ---
     parts = []
@@ -169,17 +172,25 @@ def build_soldier(faction, cfg):
     parts.append(box("Boot.R", (0.16, 0.30, 0.12), (0.12, 0.03, 0.06), BOOT))
     parts.append(cyl("Leg.L", 0.085, 0.78, (-0.12, 0.0, 0.50), TROUSER))
     parts.append(cyl("Leg.R", 0.085, 0.78, (0.12, 0.0, 0.50), TROUSER))
-    parts.append(box("Torso", (0.46, 0.26, 0.60), (0.0, 0.0, 1.18), COAT))
-    parts.append(box("Belt", (0.48, 0.28, 0.07), (0.0, 0.0, 0.92), BELT))
-    parts.append(box("Collar", (0.30, 0.22, 0.08), (0.0, 0.0, 1.50), ACCENT))
+    # Tana biroz torroq + yelka kengligi (silueti "askar"roq).
+    parts.append(box("Torso", (0.42, 0.24, 0.58), (0.0, 0.0, 1.18), COAT))
+    parts.append(box("Shoulders", (0.50, 0.26, 0.14), (0.0, 0.0, 1.44), COAT))
+    parts.append(box("Belt", (0.48, 0.26, 0.07), (0.0, 0.0, 0.92), BELT))
+    parts.append(box("Collar", (0.28, 0.20, 0.08), (0.0, 0.0, 1.50), ACCENT))
+    # Jihoz: orqada ryukzak, beldagi patrondonlar, ko'krakdan tasma, yonda matara.
+    parts.append(box("Backpack", (0.30, 0.16, 0.36), (0.0, -0.20, 1.22), PACK))
+    parts.append(box("Pouch.L", (0.11, 0.09, 0.11), (-0.13, 0.15, 0.93), PACK))
+    parts.append(box("Pouch.R", (0.11, 0.09, 0.11), (0.13, 0.15, 0.93), PACK))
+    parts.append(box("Strap", (0.07, 0.03, 0.56), (0.0, 0.13, 1.18), BELT, rot=(0, 30, 0)))
+    parts.append(cyl("Canteen", 0.055, 0.13, (0.21, -0.03, 0.85), METAL, rot=(90, 0, 0)))
     parts.append(cyl("Arm.L", 0.07, 0.58, (-0.30, 0.02, 1.18), COAT, rot=(0, 6, 0)))
     parts.append(cyl("Arm.R", 0.07, 0.58, (0.30, 0.02, 1.18), COAT, rot=(0, -6, 0)))
     parts.append(box("Hand.L", (0.10, 0.12, 0.12), (-0.31, 0.04, 0.88), SKIN))
     parts.append(box("Hand.R", (0.10, 0.12, 0.12), (0.31, 0.04, 0.88), SKIN))
-    parts.append(box("Neck", (0.12, 0.12, 0.10), (0.0, 0.0, 1.58), SKIN))
-    parts.append(box("Head", (0.21, 0.22, 0.23), (0.0, 0.0, 1.72), SKIN))
-    parts.append(dome("HelmetDome", (0.29, 0.31, 0.27), (0.0, 0.0, 1.87), HELMET))
-    parts.append(box("HelmetBrim", (0.30, 0.32, 0.025), (0.0, -0.01, 1.74), HELMET))
+    parts.append(box("Neck", (0.11, 0.11, 0.10), (0.0, 0.0, 1.58), SKIN))
+    parts.append(box("Head", (0.19, 0.20, 0.22), (0.0, 0.0, 1.72), SKIN))
+    parts.append(dome("HelmetDome", (0.27, 0.29, 0.26), (0.0, 0.0, 1.86), HELMET))
+    parts.append(box("HelmetBrim", (0.29, 0.31, 0.025), (0.0, -0.01, 1.74), HELMET))
     parts.append(box("Rifle", (0.05, 0.85, 0.07), (0.18, 0.18, 1.02), WOOD))
     parts.append(box("Bayonet", (0.022, 0.28, 0.022), (0.18, 0.74, 1.02), METAL))
 
@@ -250,10 +261,12 @@ def build_soldier(faction, cfg):
         for b in ALL_BONES:
             key(frame, b, pose.get(b, (0, 0, 0)))
 
+    # idle — tinch nafas olish + og'irlik o'tkazish (jonliroq, ~72 kadr).
     new_action("idle")
     key_pose(1, {})
-    key_pose(24, {"Spine": (2.5, 0, 0), "Head": (-1.0, 0, 0)})
-    key_pose(48, {})
+    key_pose(24, {"Spine": (1.6, 0, 0), "Head": (1.6, 0, 0), "Hips": (0.6, 0, 0)})
+    key_pose(48, {"Spine": (0.4, 0, 1.2), "Head": (0.0, 0, 1.5)})
+    key_pose(72, {})
 
     new_action("run")
     for f, s in [(1, 1), (12, -1), (24, 1)]:
@@ -272,6 +285,27 @@ def build_soldier(faction, cfg):
     key_pose(1, {})
     key_pose(13, {"Hips": (-72, 0, 0), "LegL": (38, 0, 0), "LegR": (22, 0, 0)})
     key_pose(22, {"Hips": (-88, 0, 0), "LegL": (42, 0, 0), "LegR": (26, 0, 0)})
+
+    # walk — xotirjam patrul yurishi (run'dan sekinroq, kichikroq qadam).
+    new_action("walk")
+    for f, s in [(1, 1), (16, -1), (32, 1)]:
+        key_pose(f, {
+            "LegL": (16 * s, 0, 0), "LegR": (-16 * s, 0, 0),
+            "ArmL": (-12 * s, 0, 0), "ArmR": (12 * s, 0, 0),
+            "Spine": (3, 0, 0),
+        })
+
+    # aim — miltiqni ko'tarib nishonga olish holati (ranged jangda; loop).
+    new_action("aim")
+    key_pose(1, {"ArmR": (-72, 0, 0), "ArmL": (-50, 0, 0), "Spine": (8, 0, 0), "Head": (-4, 0, 0)})
+    key_pose(24, {"ArmR": (-74, 0, 0), "ArmL": (-52, 0, 0), "Spine": (9, 0, 0), "Head": (-4, 0, 0)})
+
+    # alert — atrofga qarash (post/tekshiruvda boshni o'ng-chapga buradi).
+    new_action("alert")
+    key_pose(1, {})
+    key_pose(18, {"Head": (0, 0, 20), "Spine": (0, 0, 7)})
+    key_pose(36, {"Head": (0, 0, -20), "Spine": (0, 0, -7)})
+    key_pose(54, {})
 
     # --- glTF eksport (faqat armature + mesh) ---
     bpy.ops.object.mode_set(mode='OBJECT')

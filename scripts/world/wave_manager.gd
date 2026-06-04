@@ -1,28 +1,47 @@
 extends Node
-## To'lqin (wave) boshqaruvchisi — 3-bosqich.
+## To'lqin (wave) boshqaruvchisi — rollarga ega Kron garnizoni.
 ##
-## Vazifasi: dushmanlarni to'lqin-to'lqin spawn qiladi. Har to'lqinda ko'proq
-## dushman; har 3-dushman masofadan otadigan (ranged). Tirik dushmanlar tugaganda
-## qisqa kutib, keyingi to'lqinni boshlaydi.
-##
-## Dushmanlar "enemy" guruhida bo'ladi (enemy.gd add_to_group). Nishonlar (dummy)
-## bu guruhda EMAS, shuning uchun to'lqin hisobiga ta'sir qilmaydi.
+## Har to'lqin "mudofaa garnizoni" sifatida boshlanadi: qo'riqchilar postlarni ushlaydi,
+## patrullar yuradi, miltiqchilar otish chizig'ini, snayperlar baland postni egallaydi,
+## hujumchilar/qanotchilar bosim oshiradi. To'lqin sayin tarkib og'irlashadi (lekin hech
+## qachon zombi to'dasi emas). Tirik dushmanlar tugaganda keyingi to'lqin boshlanadi.
+
+const Enemy = preload("res://scripts/enemies/enemy.gd")
 
 @export var enemy_scene: PackedScene
-@export var first_wave_delay: float = 1.5    ## Birinchi to'lqingacha kutish (s)
-@export var between_wave_delay: float = 3.0  ## To'lqinlar orasidagi kutish (s)
-@export var base_count: int = 2              ## 1-to'lqindagi dushman = base_count + 1
+@export var first_wave_delay: float = 1.5
+@export var between_wave_delay: float = 3.0
+@export var base_count: int = 2
 
 var _wave: int = 0
-var _spawning: bool = false   ## To'lqin almashish jarayonida (qayta-trigger bo'lmasin)
+var _spawning: bool = false
 
-## Spawn nuqtalari (Godot koordinatalari, polda). Arena ichi (56x56), to'siqlardan
-## chetda, o'yinchidan (z=20) uzoqda — shimol va flanglar.
+## Hujumchi/qanotchi spawn nuqtalari (shimol + flanglar — o'yinchidan uzoq).
 var _spawn_points: Array[Vector3] = [
 	Vector3(-16, 0, -24), Vector3(0, 0, -25), Vector3(16, 0, -24),
 	Vector3(-24, 0, -8), Vector3(24, 0, -8),
 	Vector3(-8, 0, -22), Vector3(8, 0, -22),
 	Vector3(-24, 0, 8), Vector3(24, 0, 8),
+]
+
+## Qo'riqchi/miltiqchi postlari (pana qutilar ustida — janubga, o'yinchi tomon qaraydi).
+const GUARD_POSTS: Array[Vector3] = [
+	Vector3(0, 0, -18),    # markaz-old, 3x3 quti — asosiy chiziq
+	Vector3(8, 0, -10),    # sharq 2x2
+	Vector3(-9, 0, -12),   # g'arb 2x2
+	Vector3(0, 0, 0),      # markaz 2x2 — "obyekt"
+]
+## Snayper (overwatch) postlari — baland/uzoq burchaklar.
+const MARKSMAN_POSTS: Array[Vector3] = [
+	Vector3(17, 0, -15),   # shimoli-sharq 3x3
+	Vector3(-17, 0, -15),  # shimoli-g'arb 3x3
+	Vector3(0, 0, -24),    # orqa-markaz
+]
+## Patrul yo'llari (nuqtalar bo'ylab aylanadi).
+const PATROL_LOOPS: Array = [
+	[Vector3(8, 0, -10), Vector3(0, 0, -18), Vector3(-9, 0, -12)],   # old chiziq
+	[Vector3(13, 0, 4), Vector3(17, 0, -15)],                         # o'ng yo'lak
+	[Vector3(-14, 0, 3), Vector3(-17, 0, -15)],                       # chap yo'lak
 ]
 
 
@@ -35,7 +54,6 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	# To'lqin boshlangan va almashish jarayonida emas bo'lsa — tirik dushman qoldimi?
 	if _wave > 0 and not _spawning:
 		if get_tree().get_nodes_in_group("enemy").is_empty():
 			_spawning = true
@@ -49,20 +67,79 @@ func _next_wave_after_delay() -> void:
 
 func _start_wave() -> void:
 	_wave += 1
-	var count: int = base_count + _wave   # to'lqin sayin ko'proq dushman
+	var count: int = base_count + _wave
+	var roles: Array = _composition(_wave, count)
+	# Postlarni taqsimlash uchun nusxalar (pop bilan — ikkitasi bir postga tushmasin).
+	var guard_posts: Array = GUARD_POSTS.duplicate()
+	var marksman_posts: Array = MARKSMAN_POSTS.duplicate()
+	var patrol_n: int = 0
+	var spawn_n: int = 0
 	for i in count:
 		var e: Node3D = enemy_scene.instantiate()
-		# stride 1 (i) + har to'lqinda boshlanish nuqtasini surish — barcha 9 nuqta ishlatiladi.
-		# (oldingi i*3 formula gcd(3,9)=3 sabab faqat 3 nuqtaga tushardi -> ustma-ust).
-		var sp: Vector3 = _spawn_points[(i + _wave * 2) % _spawn_points.size()]
-		# Kichik tasodifiy siljish — yuqori to'lqinlarda (6+) ikki dushman bir nuqtaga
-		# tushib ustma-ust qolmasligi uchun (navmesh ichida qoladi).
-		sp += Vector3(randf_range(-1.0, 1.0), 0.0, randf_range(-1.0, 1.0))
-		e.position = sp
-		# Har 3-dushman masofadan otadigan (ranged) bo'ladi.
-		if i % 3 == 2:
-			e.is_ranged = true
+		var r: int = roles[i]
+		e.role = r
+		match r:
+			Enemy.Role.SENTRY, Enemy.Role.RIFLEMAN:
+				var post: Vector3 = guard_posts.pop_front() if not guard_posts.is_empty() else GUARD_POSTS[i % GUARD_POSTS.size()]
+				e.position = post
+				e.guard_position = post
+			Enemy.Role.MARKSMAN:
+				var mp: Vector3 = marksman_posts.pop_front() if not marksman_posts.is_empty() else MARKSMAN_POSTS[i % MARKSMAN_POSTS.size()]
+				e.position = mp
+				e.guard_position = mp
+			Enemy.Role.PATROL:
+				var loop: Array = PATROL_LOOPS[patrol_n % PATROL_LOOPS.size()]
+				patrol_n += 1
+				var pts: Array[Vector3] = []
+				for p in loop:
+					pts.append(p)
+				e.patrol_points = pts
+				e.position = loop[0]
+				e.guard_position = loop[0]
+			_:
+				# ASSAULT / FLANKER — shimol/flangdan, ozgina tasodifiy siljish bilan.
+				var sp: Vector3 = _spawn_points[(spawn_n + _wave * 2) % _spawn_points.size()]
+				spawn_n += 1
+				sp += Vector3(randf_range(-1.0, 1.0), 0.0, randf_range(-1.0, 1.0))
+				e.position = sp
+				if r == Enemy.Role.FLANKER:
+					e.flank_side = 1 if (i % 2 == 0) else -1
 		get_tree().current_scene.add_child(e)
 	_spawning = false
 	Events.wave_started.emit(_wave)
 	print("To'lqin ", _wave, " boshlandi: ", count, " dushman")
+
+
+## To'lqin tarkibi (rollar ro'yxati). Har doim mudofaa "tayanchi" bor, bosim oshib boradi.
+func _composition(wave: int, count: int) -> Array:
+	var roles: Array = []
+	if wave == 1:
+		# Garnizon: o'yinchi "ular postni ushlaydi, leash bor" ekanini o'rganadi.
+		roles = [Enemy.Role.SENTRY, Enemy.Role.SENTRY, Enemy.Role.PATROL]
+	elif wave == 2:
+		roles = [Enemy.Role.SENTRY, Enemy.Role.PATROL, Enemy.Role.RIFLEMAN, Enemy.Role.ASSAULT]
+	elif wave == 3:
+		roles = [Enemy.Role.SENTRY, Enemy.Role.RIFLEMAN, Enemy.Role.MARKSMAN, Enemy.Role.ASSAULT, Enemy.Role.FLANKER]
+	else:
+		# Byudjet-asosli: avval "ziravor" rollar (kam, lekin xilma-xillik beradi) —
+		# bular count'ga ALBATTA sig'adi (yig'indisi count'dan oshmaydi). Qolgan
+		# o'rinni mudofaa tayanchi (sentry/patrul/miltiqchi) bilan to'ldiramiz.
+		var marksmen: int = clampi(wave / 3, 1, 3)
+		var flankers: int = clampi((wave - 3) / 2, 1, 2)
+		var assault: int = clampi(wave / 3, 1, 3)   # rusher bosimi (har doim biroz bor)
+		for i in marksmen:
+			roles.append(Enemy.Role.MARKSMAN)
+		for i in flankers:
+			roles.append(Enemy.Role.FLANKER)
+		for i in assault:
+			roles.append(Enemy.Role.ASSAULT)
+		# Qolganini mudofaa tayanchi bilan to'ldiramiz (takror naqsh).
+		var backbone: Array = [Enemy.Role.SENTRY, Enemy.Role.SENTRY, Enemy.Role.PATROL, Enemy.Role.RIFLEMAN]
+		var bi: int = 0
+		while roles.size() < count:
+			roles.append(backbone[bi % backbone.size()])
+			bi += 1
+	# Kam bo'lsa to'ldiramiz, ko'p bo'lsa kesamiz (aniq count).
+	while roles.size() < count:
+		roles.append(Enemy.Role.ASSAULT)
+	return roles.slice(0, count)

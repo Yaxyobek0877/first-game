@@ -30,3 +30,10 @@ _ingame_shot*
 
 # Vaqtinchalik art/eksperiment fayllari
 .art_tmp/
+
+# Claude Code sessiya/workflow scratch (transkript, subagent loglari) — repozitoriyaga kirmaydi
+.claude/
+
+# Vaqtinchalik test/spetsifikatsiya fayllari (tools/ test harness, _spec.md)
+tools/
+_spec.md
