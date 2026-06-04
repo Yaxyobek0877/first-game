@@ -112,7 +112,11 @@ first_game/
 
 ## 🎮 Boshqaruv
 
-`WASD` yurish · sichqoncha qarash · chap tugma otish · **o'ng tugma — aim/zoom** · `Shift` yugurish · `Space` sakrash · `R` qayta o'qlash · `1`/`2` qurol (avatar/jihoz ekranida tanlangan 2 slot) · `Esc` pauza menyu (Sozlamalar). Bosh menyu: **Avatar / Jihoz** (qurol tanlash) · **Sozlamalar** (ovoz/sezgirlik/ekran).
+`WASD` yurish · sichqoncha qarash · chap tugma otish · **o'ng tugma — aim/zoom** · `Shift` yugurish · `Space` sakrash · **`Ctrl` cho'kkalash · ikkita `Ctrl` (double-tap) — sirpanish (slide) · `Z` yotish (toggle) · `Q`/`E` chap/o'ngga egilish (lean/peek)** · `R` qayta o'qlash · `1`/`2` **yoki sichqoncha g'ildiragi (scroll)** qurol almashtirish · `Esc` pauza menyu (Sozlamalar). Bosh menyu: **Avatar / Jihoz** (qurol tanlash) · **Sozlamalar** (ovoz/sezgirlik/ekran).
+
+> **Egilish (lean, `player.gd` `_update_view_lean`):** `Q`/`E` — kamera yon siljiydi (`head.position.x`) + ag'dariladi (`head.rotation.z`, ~14°) = "beli bukilishi"/mo'ralash. Roll BITTA joyda boshqariladi (lean + slayd ag'darilishi composed) — slayd va narvon (climb head-bob `head.position.x`) bilan to'qnashmaydi. Egilish yo'nalishida devor bo'lsa `_lean_allowed` ray bilan to'sadi (kamera devorga kirmaydi).
+
+> **Cho'kkalash/yotish/sirpanish (`player.gd`):** holat mashinasi STAND/CROUCH/PRONE — kapsula balandligi + kamera SILLIQ (lerp) o'zgaradi; tik turishda tepada to'siq bo'lsa (quti/platforma ostida) `_stance_blocked` shape-query bilan bloklanadi (pastroqda qoladi). Pastga doim mumkin, balandga faqat joy bo'lsa. Cho'kkalagan/yotgan holatda sakrash/yugurish yo'q. **Slayd:** ikkita Ctrl (≤0.30s) — qotirilgan yo'nalishda oldinga tezkor sirpanish (~0.65s, kamera past + yon ag'darilish), tezligi crouch'gacha pasayadi; sakrash bekor qiladi (slide-jump); cooldown 0.5s.
 
 ---
 

@@ -1,7 +1,7 @@
 [gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/loadout.gd" id="1"]
-[ext_resource type="Texture2D" path="res://assets/ui/menu/menu_background.png" id="2"]
+[ext_resource type="Texture2D" path="res://assets/ui/menu/loadout_background.png" id="2"]
 [ext_resource type="PackedScene" path="res://assets/models/aros_soldier.glb" id="3"]
 
 [sub_resource type="Environment" id="Env"]

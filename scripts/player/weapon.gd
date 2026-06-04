@@ -41,6 +41,9 @@ var _scoped: bool = false   ## Snayper durbin (scope) overlay faolmi
 var _reloading: bool = false  ## Qayta o'qlash jarayonidami (otib bo'lmaydi)
 var _reload_t: float = 0.0    ## Reload animatsiyasi progressi 0->1 (qurol pasayadi)
 var _reload_gen: int = 0      ## Reload "avlodi" — eskirgan coroutine'larni bekor qiladi (race oldini olish)
+var _recoil_pitch: float = 0.0  ## Otish "tepishi" burilishi (daraja — quvur tepaga; nolga so'nadi)
+var _bolt_t: float = 0.0        ## Snayper zatvor harakati progressi (0 = jim, >0 = ishlayapti)
+const BOLT_DUR := 0.55          ## Zatvor (bolt-action) harakati davomiyligi (s)
 
 
 func _ready() -> void:
@@ -76,6 +79,11 @@ func _ready() -> void:
 	if body != null:
 		ray.add_exception(body)
 
+	# O'q nuri dushman HITBOX'larini (bosh/tana/oyoq — 5-qatlam "hitbox"=16) uradi,
+	# kapsulani (enemy=4) emas — shu sabab tana qismini aniqlab, headshot beramiz.
+	ray.collide_with_areas = true
+	ray.collision_mask = 1 | (1 << 4)   # world(1) + hitbox(16) = 17
+
 	# Otish tovushi pleyeri (WAV — protsedural SFX). "SFX" shinasiga ulanadi.
 	# Stream faol qurolga qarab _apply_active_weapon'da o'rnatiladi.
 	_shot_player = AudioStreamPlayer.new()
@@ -94,6 +102,12 @@ func _process(delta: float) -> void:
 	# Viewmodel animatsiyasi: recoil so'nadi, equip ko'tariladi, yengil bob qo'shiladi.
 	_time += delta
 	_recoil = _recoil.lerp(Vector3.ZERO, clampf(delta * 14.0, 0.0, 1.0))
+	_recoil_pitch = lerpf(_recoil_pitch, 0.0, clampf(delta * 12.0, 0.0, 1.0))
+	# Zatvor (bolt-action) harakati: boshlangan bo'lsa progressni surib, tugaganda nolga.
+	if _bolt_t > 0.0:
+		_bolt_t += delta / BOLT_DUR
+		if _bolt_t >= 1.0:
+			_bolt_t = 0.0
 	_equip_t = move_toward(_equip_t, 1.0, delta * 4.5)
 	if _reloading and not weapons.is_empty():
 		_reload_t = minf(_reload_t + delta / maxf(0.1, _active().reload_time), 1.0)
@@ -105,6 +119,11 @@ func _process(delta: float) -> void:
 		_switch_to(0)
 	elif Input.is_action_just_pressed("weapon_2"):
 		_switch_to(1)
+	# Sichqoncha g'ildiragi (scroll) bilan keyingi/oldingi qurolga aylanma o'tish.
+	elif Input.is_action_just_pressed("weapon_next"):
+		_cycle(1)
+	elif Input.is_action_just_pressed("weapon_prev"):
+		_cycle(-1)
 
 	# Sichqoncha qamalmagan bo'lsa (pauza/menyu) — otmaymiz.
 	if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
@@ -134,6 +153,13 @@ func _active() -> Resource:
 ## Faol qurolga mos viewmodel tugunini qaytaradi (model_node bo'yicha). Yo'q bo'lsa null.
 func _active_model() -> Node3D:
 	return _model_nodes.get(_active().model_node, null)
+
+
+## Scroll bilan keyingi (+1) yoki oldingi (-1) qurolga aylanma o'tadi.
+func _cycle(dir: int) -> void:
+	if weapons.size() <= 1:
+		return
+	_switch_to((_current_index + dir + weapons.size()) % weapons.size())
 
 
 ## Berilgan slotga o'tadi (agar mavjud va boshqa bo'lsa).
@@ -196,7 +222,8 @@ func _update_viewmodel() -> void:
 	var m: Node3D = _active_model()
 	if m == null:
 		return
-	var base: Vector3 = _base_pos.get(_active().model_node, Vector3.ZERO)
+	var w: Resource = _active()
+	var base: Vector3 = _base_pos.get(w.model_node, Vector3.ZERO)
 	# Aim qilganda bob kamayadi (tinch nishon).
 	var bob := Vector3(sin(_time * 1.8) * 0.003, sin(_time * 3.6) * 0.003, 0.0) * (1.0 - _aim_t)
 	# equip: 0 da pastroq/orqaroq, 1 da asl joyda
@@ -204,14 +231,28 @@ func _update_viewmodel() -> void:
 	# ADS: aim qilganda qurol markazga (x->0) va biroz oldinga/tepaga olinadi.
 	var bx: float = base.x
 	var aim := _aim_t * Vector3(-bx * 0.92, 0.03, 0.05)
-	# Reload: qurol pasayadi (o'rtada eng past) — magazin almashish hissi.
+	# Reload: qurol pasayadi (o'rtada eng past); bolt-action bo'lsa gardishni ham ag'daradi.
 	var reload_dip := Vector3.ZERO
+	var reload_roll := 0.0
 	if _reloading:
 		var d: float = sin(_reload_t * PI)
 		reload_dip = Vector3(0.04, -0.20 * d, 0.0)
+		if w.bolt_action:
+			reload_roll = 20.0 * d   # snayper: o'q joylash hissi (qo'l gardishni ishlatadi)
+	# Bolt-action zatvor harakati (snayper) — har otishdan keyin orqaga tortib qaytariladi.
+	var bolt_off := Vector3.ZERO
+	var bolt_roll := 0.0
+	var bolt_pitch := 0.0
+	if _bolt_t > 0.0:
+		var bp: float = sin(clampf(_bolt_t, 0.0, 1.0) * PI)   # 0 -> 1 -> 0
+		bolt_off = Vector3(0.025, -0.03, 0.05) * bp           # orqaga+pastga+o'ngga
+		bolt_roll = 16.0 * bp                                  # gardishni ag'darish
+		bolt_pitch = 4.0 * bp
 	# Durbin orqali qaraganda qurol modeli yashiriladi.
 	m.visible = not _scoped
-	m.position = base + _recoil + bob + equip + aim + reload_dip
+	m.position = base + _recoil + bob + equip + aim + reload_dip + bolt_off
+	# Burilish: recoil quvurni tepaga (pitch+), bolt/reload gardishni ag'daradi (roll).
+	m.rotation_degrees = Vector3(_recoil_pitch + bolt_pitch, 0.0, bolt_roll + reload_roll)
 
 
 ## Quvur uchidagi doimiy alanga tugunini qisqa vaqt ko'rsatadi (otish his uchun).
@@ -254,10 +295,15 @@ func _shoot() -> void:
 	_ammo_counts[_current_index] -= 1
 	Events.ammo_changed.emit(_ammo_counts[_current_index], w.max_ammo)
 
-	# Otish "tepishi" (recoil — orqaga/tepaga) + quvur uchidagi alanga.
-	_recoil += Vector3(0.0, 0.012, 0.045)
-	_recoil.z = minf(_recoil.z, 0.08)
-	_recoil.y = minf(_recoil.y, 0.03)
+	# Otish "tepishi" (recoil) — har qurolga moslangan (topponcha/avtomat/snayper farqli).
+	# Siljish (orqaga+tepaga) + quvurni tepaga ko'taradigan burilish (pitch).
+	_recoil += Vector3(0.0, w.recoil_up, w.recoil_back)
+	_recoil.z = minf(_recoil.z, w.recoil_back * 1.8)
+	_recoil.y = minf(_recoil.y, w.recoil_up * 1.8)
+	_recoil_pitch = minf(_recoil_pitch + w.recoil_pitch, w.recoil_pitch * 1.6)
+	# Snayper (bolt-action): har otishdan keyin zatvor harakatini boshlaymiz ("puza").
+	if w.bolt_action:
+		_bolt_t = 0.0001
 	_muzzle_flash()
 	if _shot_player != null and _shot_player.stream != null:
 		_shot_player.pitch_scale = randf_range(0.92, 1.08)   # ozgina o'zgarish — bir xil bo'lmasin
@@ -273,9 +319,15 @@ func _shoot() -> void:
 		var target: Object = ray.get_collider()
 		var point: Vector3 = ray.get_collision_point()
 		tracer_end = point
-		# Agar tekkan narsa "take_damage" funksiyasiga ega bo'lsa — zarar beramiz.
-		if target != null and target.has_method("take_damage"):
-			target.take_damage(w.damage)
+		# O'q kuchi: har qurol zarari × tasodifiy ±15% (o'qlar bir xil emas).
+		var dmg: float = w.damage * randf_range(0.85, 1.15)
+		var victim: Object = target
+		# Hitbox'ga tegsa — tana joyiga qarab ko'paytma (bosh ×2.5 / tana ×1 / oyoq ×0.7).
+		if target != null and target.is_in_group("hitbox"):
+			dmg *= float(target.get_meta("mult", 1.0))
+			victim = target.get_parent()
+		if victim != null and victim.has_method("take_damage"):
+			victim.take_damage(dmg)
 			Events.target_hit.emit()   # HUD hit-marker ko'rsatadi
 		_spawn_impact(point)
 	else:

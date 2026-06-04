@@ -416,6 +416,76 @@ def make_backdrop(W=2048, H=512):
 
 
 # =====================================================================
+# 11) Panorama osmon (2:1 equirektangular) — arena atrofidagi 360° jang ufqi.
+#     PanoramaSkyMaterial uchun: cheksizlikda render bo'ladi -> qiya burchakda
+#     streaking BO'LMAYDI (tekis devorga rasm qo'yishdagi muammoning yechimi).
+#     Horizon v=0.5 da; u bo'ylab 360° seamless.
+# =====================================================================
+def make_sky_panorama(W=2048, H=1024):
+	random.seed(41)
+	img = Image.new("RGB", (W, H), (0, 0, 0)); px = img.load()
+	horizon = H // 2
+	zenith = (26, 32, 46); skyhor = (158, 98, 54)     # osmon: zenit -> ufq (amber)
+	grnd_hor = (66, 50, 36); nadir = (12, 10, 8)       # ufqdan past: tuproq -> qorong'i
+	for y in range(H):
+		if y <= horizon:
+			t = (y / max(1, horizon)) ** 1.8           # amber ufqqa yaqin to'planadi
+			c = (int(zenith[0] + (skyhor[0] - zenith[0]) * t),
+				 int(zenith[1] + (skyhor[1] - zenith[1]) * t),
+				 int(zenith[2] + (skyhor[2] - zenith[2]) * t))
+		else:
+			t = ((y - horizon) / max(1, H - horizon)) ** 0.8
+			c = (int(grnd_hor[0] + (nadir[0] - grnd_hor[0]) * t),
+				 int(grnd_hor[1] + (nadir[1] - grnd_hor[1]) * t),
+				 int(grnd_hor[2] + (nadir[2] - grnd_hor[2]) * t))
+		for x in range(W):
+			px[x, y] = c
+	# quyosh yorug'i (bitta azimutda, ufq yaqinida)
+	glow = Image.new("RGBA", (W, H), (0, 0, 0, 0)); gd = ImageDraw.Draw(glow)
+	gx = int(W * 0.5)
+	gd.ellipse((gx - 240, horizon - 150, gx + 240, horizon + 150), fill=(240, 160, 80, 150))
+	glow = glow.filter(ImageFilter.GaussianBlur(80))
+	img = Image.alpha_composite(img.convert("RGBA"), glow).convert("RGB")
+	# tutun ustunlari (ufqdan tepaga), 360° seamless
+	smoke = Image.new("RGBA", (W, H), (0, 0, 0, 0)); sd = ImageDraw.Draw(smoke)
+	for _ in range(10):
+		sx = random.randint(0, W); ty = random.randint(int(H * 0.10), int(H * 0.40)); wd = random.randint(30, 70)
+		for ox in (0, -W, W):
+			sd.polygon([(sx + ox - wd, horizon), (sx + ox + wd, horizon),
+						(sx + ox + wd // 2, ty), (sx + ox - wd // 2, ty)], fill=(40, 36, 40, 80))
+	smoke = smoke.filter(ImageFilter.GaussianBlur(34))
+	img = Image.alpha_composite(img.convert("RGBA"), smoke).convert("RGB")
+	# ufq siluetlari (vayrona / daraxt / qoldiq), 360° seamless
+	d = ImageDraw.Draw(img); sil = (18, 16, 18)
+	x = 0
+	while x < W:
+		kind = random.random(); bw = random.randint(18, 80)
+		bh = random.randint(int(H * 0.02), int(H * 0.085)); ty = horizon - bh
+		for ox in (0, -W, W):
+			xx = x + ox
+			if kind < 0.4:
+				d.rectangle((xx, ty, xx + bw, horizon + 4), fill=sil)
+				d.polygon([(xx, ty), (xx + bw // 3, ty - bh // 3),
+						   (xx + 2 * bw // 3, ty + bh // 6), (xx + bw, ty)], fill=sil)
+			elif kind < 0.7:
+				tw = max(2, bw // 9); cx = xx + bw // 2
+				d.rectangle((cx - tw, horizon - int(bh * 1.8), cx + tw, horizon + 4), fill=sil)
+			else:
+				d.ellipse((xx, horizon - bh // 2, xx + bw, horizon + bh // 2), fill=sil)
+		x += random.randint(30, 90)
+	# ufq haze (yumshoq band)
+	haze = Image.new("RGBA", (W, H), (0, 0, 0, 0)); hd = ImageDraw.Draw(haze)
+	hd.rectangle((0, horizon - 20, W, horizon + 24), fill=(170, 130, 100, 70))
+	haze = haze.filter(ImageFilter.GaussianBlur(26))
+	img = Image.alpha_composite(img.convert("RGBA"), haze).convert("RGB")
+	noise = Image.effect_noise((W, H), 12).convert("RGB")
+	img = Image.blend(img, noise, 0.04)
+	img.save(os.path.join(TEX, "sky_panorama.png"))
+	print("  sky panorama: sky_panorama.png %dx%d" % (W, H))
+	return img
+
+
+# =====================================================================
 #  Kontakt-varaq (preview) — barcha UI elementlarni bitta rasmda ko'rish uchun
 # =====================================================================
 def make_contact(icons, logo):
@@ -453,7 +523,8 @@ if __name__ == "__main__":
 	make_sandbags()
 	make_rusted_metal()
 	make_backdrop()
-	print("  teksturalar: sandbags, rusted_metal (tileable), battle_backdrop")
+	make_sky_panorama()
+	print("  teksturalar: sandbags, rusted_metal (tileable), battle_backdrop, sky_panorama")
 	make_contact([("crosshair", ch), ("hitmarker", hm), ("health", hp),
 				  ("ammo", am), ("avtomat", av), ("sniper", sn)], logo)
 	print("  preview: assets/art/_preview_ui.png")

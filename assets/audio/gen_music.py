@@ -97,20 +97,45 @@ def adsr(i, n, a, d, s, r):
 
 # --- Tovush sintezi -------------------------------------------------------
 
-def pad_voice(freq, dur, vol=0.2, detune=0.006):
-    """Yumshoq, sekin pad ovozi — uchta biroz farqli (detune) arra to'lqin."""
+def pad_voice(freq, dur, vol=0.2, detune=0.011):
+    """Iliq, qalin pad ovozi — 4 ta detune unison (arra+sinus aralash) + sub-oktava.
+    Yumshoq attack/release (legato his), harmonik jihatdan to'liqroq — quruq arra emas."""
     n = int(SR * dur)
     out = [0.0] * n
-    for k, dt in enumerate((-detune, 0.0, detune)):
+    # 4 ovozli unison — markazga yaqin ikkitasi ham (qalinlik, beating yumshoq)
+    for dt in (-detune, -detune / 3.0, detune / 3.0, detune):
         f = freq * (1.0 + dt)
         ph = random.uniform(0, math.pi)
         for i in range(n):
             t = i / SR
-            # arra (band-cheklanmagan, lekin past chastota uchun yetarli)
-            saw = 2.0 * ((f * t + ph / (2 * math.pi)) % 1.0) - 1.0
-            env = adsr(i, n, 0.22, 0.12, 0.75, 0.30)
-            # past o'tkazgich his uchun — yuqori harmonikani biroz so'ndiramiz
-            out[i] += saw * env * vol * 0.33
+            ang = f * t + ph / (2 * math.pi)
+            saw = 2.0 * (ang % 1.0) - 1.0
+            sine = math.sin(2 * math.pi * ang)
+            wave_v = saw * 0.55 + sine * 0.45   # arra = jism, sinus = iliqlik
+            env = adsr(i, n, 0.30, 0.15, 0.78, 0.40)   # yumshoqroq attack/release
+            out[i] += wave_v * env * vol * 0.25
+    # Sub-oktava (bir oktava past sof sinus) — to'liqlik/iliqlik.
+    fsub = freq * 0.5
+    ph2 = random.uniform(0, math.pi)
+    for i in range(n):
+        t = i / SR
+        env = adsr(i, n, 0.30, 0.15, 0.78, 0.40)
+        out[i] += math.sin(2 * math.pi * fsub * t + ph2) * env * vol * 0.16
+    return out
+
+
+def drone(freq, total_n, vol=0.10):
+    """Uzluksiz past pedal (arra+sinus) — akkordlar ostida, hech qachon qayta urilmaydi.
+    Akkordlar orasidagi cho'kishlarni to'ldiradi va loop chokini yanada sezilmas qiladi
+    (uzluksiz signal — loopify chok atrofidagi qiyalikni muammosiz ulaydi)."""
+    out = [0.0] * total_n
+    ph = random.uniform(0, math.pi)
+    for i in range(total_n):
+        t = i / SR
+        ang = freq * t + ph / (2 * math.pi)
+        saw = 2.0 * (ang % 1.0) - 1.0
+        sine = math.sin(2 * math.pi * ang)
+        out[i] = (saw * 0.35 + sine * 0.65) * vol
     return out
 
 
@@ -192,60 +217,74 @@ def make_menu():
     ]
     total = int(SR * chord_dur * len(chords))
     buf = [0.0] * total
+    # Uzluksiz pedal: past A (A1) + uning kvintasi E (E2) — butun trek bo'ylab uziladi-yo'q.
+    # Akkordlar orasidagi cho'kishni to'ldiradi -> silliqroq, loop sezilmas.
+    mix_into(buf, drone(midi_to_freq(33), total, vol=0.085), 0)   # A1 pedal
+    mix_into(buf, drone(midi_to_freq(40), total, vol=0.045), 0)   # E2 (kvinta) — yengilroq
     for ci, ch in enumerate(chords):
         start = int(SR * chord_dur * ci)
         for note in ch:
-            v = pad_voice(midi_to_freq(note), chord_dur, vol=0.16)
+            v = pad_voice(midi_to_freq(note), chord_dur, vol=0.15)
             mix_into(buf, v, start)
     # Yuqorida sokin qo'ng'iroq melodiyasi (A minor pentatonika) — uzunroq, o'zgaruvchan
     mel = [69, 72, 76, 72, 74, 69, 67, 69, 72, 76, 79, 76, 74, 72, 69, 64]
     step = total // len(mel)
     for mi, mnote in enumerate(mel):
-        b = bell(midi_to_freq(mnote), 2.2, vol=0.15)
+        b = bell(midi_to_freq(mnote), 2.2, vol=0.13)
         mix_into(buf, b, mi * step + int(SR * 0.3))
     buf = [soft_clip(s) for s in buf]
     buf = normalize(buf, 0.82)
-    return loopify(buf)
+    # Uzunroq crossfade (0.35s) — chok allaqachon toza, lekin qiyalik/faza farqini ham yashiradi.
+    return loopify(buf, fade_sec=0.35)
 
 
 def make_combat():
-    """Keskin jang treki — ~128 BPM, bas ostinato + kick/snare + arpejio."""
+    """Keskin jang treki — ~128 BPM, bas ostinato + kick/snare + arpejio.
+    8 bar (~15s) ikki yarim bilan — tez takror sezilmasin; oxirida snare fill (turnaround)."""
     random.seed(23)
     bpm = 128.0
     beat = 60.0 / bpm
-    bars = 4
+    bars = 8
     total = int(SR * beat * 4 * bars)
     buf = [0.0] * total
-
-    # Bas ostinato (A minor): A A C D har 1/2 beat
-    bass_seq = [33, 33, 36, 38]   # A1 A1 C2 D2
     half = beat / 2.0
-    steps = int(beat * 4 * bars / half)
+    beats_total = bars * 4
+
+    # Bas ostinato — 1-yarim A A C D, 2-yarim A C E D (variatsiya, monotonlik bo'lmasin).
+    seq_a = [33, 33, 36, 38]   # A1 A1 C2 D2
+    seq_b = [33, 36, 40, 38]   # A1 C2 E2 D2
+    steps = int(total / (SR * half))
+    half_steps = steps // 2
     for i in range(steps):
-        note = bass_seq[i % len(bass_seq)]
-        b = bass(midi_to_freq(note), half * 0.95, vol=0.30)
+        seq = seq_a if i < half_steps else seq_b
+        note = seq[i % len(seq)]
+        b = bass(midi_to_freq(note), half * 0.95, vol=0.28)
         mix_into(buf, b, int(SR * half * i))
 
-    # Kick — har beatda; Snare — 2 va 4-beatda
-    total_beats = int(beat * 4 * bars / beat)
-    for i in range(total_beats):
-        mix_into(buf, kick(), int(SR * beat * i))
+    # Kick — har beatda; Snare — 2 va 4-beatda (kick biroz pasaytirildi — boshqalarni bosmasin).
+    for i in range(beats_total):
+        mix_into(buf, kick(vol=0.5), int(SR * beat * i))
         if i % 2 == 1:
-            mix_into(buf, snare(), int(SR * beat * i))
+            mix_into(buf, snare(vol=0.30), int(SR * beat * i))
+    # Oxirgi beatda qo'shimcha snare fill (loop turnaround — qaytishni tabiiy qiladi).
+    for k in range(2):
+        mix_into(buf, snare(vol=0.26), int(SR * (beat * (beats_total - 1) + beat * 0.5 * k)))
 
-    # Arpejio (yuqori, keskin) — A minor: A C E A
+    # Arpejio (yuqori, keskin) — A minor: A C E A; 2-yarmida bir oktava balandroq jonlanish.
     arp = [69, 72, 76, 81, 76, 72]
     sixteenth = beat / 4.0
-    asteps = int(beat * 4 * bars / sixteenth)
+    asteps = int(total / (SR * sixteenth))
     for i in range(asteps):
         if i % 2 == 0:   # har ikkinchi 1/16 — siyrak, charchatmasin
             note = arp[(i // 2) % len(arp)]
+            if i >= asteps // 2:
+                note += 12   # 2-yarim — oktava balandroq (rivoj)
             b = bell(midi_to_freq(note), sixteenth * 2.0, vol=0.10)
             mix_into(buf, b, int(SR * sixteenth * i))
 
     buf = [soft_clip(s) for s in buf]
     buf = normalize(buf, 0.9)
-    return loopify(buf, fade_sec=0.08)
+    return loopify(buf, fade_sec=0.15)
 
 
 def make_ui_click():

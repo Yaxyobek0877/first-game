@@ -3,14 +3,11 @@
 [ext_resource type="Script" path="res://scripts/world/arena.gd" id="1"]
 [ext_resource type="PackedScene" path="res://assets/models/trench_dressing.glb" id="2"]
 [ext_resource type="Texture2D" path="res://assets/textures/ground_mud.png" id="3"]
-[ext_resource type="Texture2D" path="res://assets/textures/battle_backdrop.png" id="4"]
+[ext_resource type="Texture2D" path="res://assets/textures/sky_panorama.png" id="4"]
 [ext_resource type="Texture2D" path="res://assets/textures/wood_planks.png" id="5"]
 
-[sub_resource type="ProceduralSkyMaterial" id="Sky_mat"]
-sky_top_color = Color(0.46, 0.49, 0.53, 1)
-sky_horizon_color = Color(0.56, 0.56, 0.57, 1)
-ground_bottom_color = Color(0.3, 0.27, 0.22, 1)
-ground_horizon_color = Color(0.52, 0.5, 0.46, 1)
+[sub_resource type="PanoramaSkyMaterial" id="Sky_mat"]
+panorama = ExtResource("4")
 
 [sub_resource type="Sky" id="Sky_1"]
 sky_material = SubResource("Sky_mat")
@@ -22,19 +19,21 @@ ambient_light_source = 3
 ambient_light_energy = 1.5
 tonemap_mode = 2
 tonemap_exposure = 1.2
+fog_enabled = true
+fog_light_color = Color(0.62, 0.46, 0.33, 1)
+fog_light_energy = 0.9
+fog_sky_affect = 0.0
+fog_density = 0.008
 
 [sub_resource type="StandardMaterial3D" id="Mat_floor"]
 albedo_color = Color(0.78, 0.74, 0.68, 1)
 albedo_texture = ExtResource("3")
 uv1_scale = Vector3(0.2, 0.2, 0.2)
+texture_filter = 5
 roughness = 1.0
 
 [sub_resource type="StandardMaterial3D" id="Mat_wall"]
-albedo_color = Color(1, 1, 1, 1)
-albedo_texture = ExtResource("4")
-uv1_scale = Vector3(2.33, 1, 1)
-shading_mode = 0
-texture_filter = 1
+albedo_color = Color(0.2, 0.17, 0.14, 1)
 roughness = 1.0
 
 [sub_resource type="StandardMaterial3D" id="Mat_box"]
@@ -82,27 +81,27 @@ size = Vector3(56, 1, 56)
 material = SubResource("Mat_floor")
 
 [node name="Wall_North" type="CSGBox3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, -28)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, -28)
 use_collision = true
-size = Vector3(56, 6, 1)
+size = Vector3(56, 2.5, 1)
 material = SubResource("Mat_wall")
 
 [node name="Wall_South" type="CSGBox3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 28)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.25, 28)
 use_collision = true
-size = Vector3(56, 6, 1)
+size = Vector3(56, 2.5, 1)
 material = SubResource("Mat_wall")
 
 [node name="Wall_East" type="CSGBox3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28, 3, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28, 1.25, 0)
 use_collision = true
-size = Vector3(1, 6, 56)
+size = Vector3(1, 2.5, 56)
 material = SubResource("Mat_wall")
 
 [node name="Wall_West" type="CSGBox3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 3, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 1.25, 0)
 use_collision = true
-size = Vector3(1, 6, 56)
+size = Vector3(1, 2.5, 56)
 material = SubResource("Mat_wall")
 
 [node name="Box1" type="CSGBox3D" parent="."]

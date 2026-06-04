@@ -14,10 +14,12 @@ extends CanvasLayer
 @onready var weapon_icon: TextureRect = $WeaponIcon
 @onready var damage_overlay: ColorRect = $DamageOverlay
 @onready var fps_label: Label = $FpsLabel
+@onready var grenade_label: Label = $GrenadeLabel
 
 ## Qurol ikonkalari (qurol almashganda almashtiriladi).
 const TEX_AVTOMAT := preload("res://assets/ui/hud/icon_avtomat.png")
 const TEX_SNIPER := preload("res://assets/ui/hud/icon_sniper.png")
+const TEX_TOPPONCHA := preload("res://assets/ui/hud/icon_topponcha.png")
 
 const RECORD_PATH := "user://record.save"
 var score: int = 0
@@ -35,6 +37,7 @@ func _ready() -> void:
 	Events.wave_started.connect(_on_wave_started)
 	Events.target_hit.connect(_on_target_hit)
 	Events.scoped.connect(_on_scoped)
+	Events.grenade_changed.connect(_on_grenade_changed)
 	# FPS ko'rsatkichi: Sozlamalardan ko'rinishi olinadi, o'zgarsa jonli yangilanadi.
 	fps_label.visible = GameSettings.show_fps
 	GameSettings.changed.connect(_on_settings_changed)
@@ -103,12 +106,24 @@ func _on_enemy_died(_enemy: Node) -> void:
 
 func _on_weapon_changed(weapon_name: String) -> void:
 	weapon_label.text = "Qurol: %s" % weapon_name
-	# Qurol turiga mos ikonka (nomida "nayper" bo'lsa — snayper, aks holda avtomat).
-	weapon_icon.texture = TEX_SNIPER if weapon_name.to_lower().contains("nayper") else TEX_AVTOMAT
+	# Qurol turiga mos ikonka (nomi bo'yicha: snayper / topponcha / avtomat).
+	var ln := weapon_name.to_lower()
+	if ln.contains("nayper"):
+		weapon_icon.texture = TEX_SNIPER
+	elif ln.contains("opponcha"):
+		weapon_icon.texture = TEX_TOPPONCHA
+	else:
+		weapon_icon.texture = TEX_AVTOMAT
 
 
 func _on_wave_started(wave: int) -> void:
 	wave_label.text = "To'lqin: %d" % wave
+
+
+## Granata turi/soni o'zgarganda (GrenadeThrower yuboradi).
+func _on_grenade_changed(grenade_type: String, count: int) -> void:
+	var names := {"frag": "Frag", "smoke": "Tutun", "flash": "Flash"}
+	grenade_label.text = "Granata: %s ×%d" % [names.get(grenade_type, grenade_type), count]
 
 
 ## Snayper durbiniga qaraganda (scoped) — oddiy crosshair yashiriladi

@@ -36,3 +36,10 @@ signal scoped(active: bool)
 ## O'yinchi o'q uzganda (otish ovozi). Yaqindagi dushmanlar "eshitib" tovush kelgan
 ## joyni tekshirishga boradi (idrok — eshitish). Dunyo koordinatasi yuboriladi.
 signal player_fired(world_pos: Vector3)
+
+## Portlash sodir bo'lganda (granata frag). Markaz va radius — kamera silkinishi /
+## feedback uchun. (Hozircha ixtiyoriy eshituvchilar.)
+signal explosion(center: Vector3, radius: float)
+
+## Granata turi yoki soni o'zgarganda — HUD joriy turni va sonni ko'rsatadi.
+signal grenade_changed(grenade_type: String, count: int)

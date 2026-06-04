@@ -17,6 +17,7 @@ DIQQAT: Kron mesh nomi "KronSoldierMesh" — enemy.gd shu nom bilan topadi, o'zg
 
 import bpy
 import os
+import mathutils
 from math import radians
 
 
@@ -105,6 +106,25 @@ def dome(name, size, loc, mat, subdiv=2):
     return ball(name, size, loc, mat, subdiv=subdiv)
 
 
+## Bukilgan a'zo: konusni IKKI NUQTA orasiga joylaydi (yelka->tirsak, tirsak->kaft).
+## p_top — yo'g'on uchi (yelka/tirsak), p_bot — ingichka uchi (tirsak/kaft).
+def limb(name, p_top, p_bot, r_top, r_bot, mat, verts=12, smooth=True):
+    top = mathutils.Vector(p_top)
+    bot = mathutils.Vector(p_bot)
+    axis = top - bot
+    length = max(axis.length, 0.001)
+    center = (top + bot) * 0.5
+    bpy.ops.mesh.primitive_cone_add(vertices=verts, radius1=r_bot, radius2=r_top, depth=length, location=center)
+    o = bpy.context.active_object
+    o.name = name
+    o.rotation_mode = 'QUATERNION'
+    o.rotation_quaternion = mathutils.Vector((0, 0, 1)).rotation_difference(axis.normalized())
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+    o.data.materials.append(mat)
+    _shade(o, smooth)
+    return o
+
+
 def setup_camera_and_light():
     bpy.ops.object.empty_add(location=(0.0, 0.0, 0.95))
     target = bpy.context.active_object
@@ -155,8 +175,10 @@ BONE_OF = {
     "Shoulder.R": "Spine", "Backpack": "Spine", "Pouch.L": "Spine",
     "Pouch.R": "Spine", "Strap": "Spine", "Canteen": "Spine", "Button": "Spine",
     # Qo'llar (yelka pastidan: yelka-yuqori + tirsak + bilak + kaft) + miltiq
-    "UpperArm.L": "ArmL", "Elbow.L": "ArmL", "Forearm.L": "ArmL", "Hand.L": "ArmL",
-    "UpperArm.R": "ArmR", "Elbow.R": "ArmR", "Forearm.R": "ArmR", "Hand.R": "ArmR",
+    "UpperArm.L": "ArmL", "Elbow.L": "ArmL", "Forearm.L": "ArmL",
+    "Hand.L": "ArmL", "Fingers.L": "ArmL", "Thumb.L": "ArmL",
+    "UpperArm.R": "ArmR", "Elbow.R": "ArmR", "Forearm.R": "ArmR",
+    "Hand.R": "ArmR", "Fingers.R": "ArmR", "Thumb.R": "ArmR",
     "Rifle": "ArmR", "Bayonet": "ArmR",
     # Bo'yin + bosh + yuz + dubulg'a (Head)
     "Neck": "Head", "Head": "Head", "Jaw": "Head", "Nose": "Head", "Brow": "Head",
@@ -232,12 +254,23 @@ def build_soldier(faction, cfg):
     parts.append(box("Strap", (0.06, 0.03, 0.56), (0.0, -0.13, 1.2), BELT, rot=(0, 28, 0)))
     parts.append(cyl("Canteen", 0.055, 0.13, (0.22, 0.06, 0.85), METAL, verts=12, rot=(90, 0, 0)))
 
-    # Qo'llar: yelka-yuqori(konus) + tirsak(shar) + bilak(konus) + kaft(shar)
-    for sx, sfx in [(-0.31, "L"), (0.31, "R")]:
-        parts.append(taper("UpperArm." + sfx, 0.062, 0.08, 0.30, (sx, 0.0, 1.28), COAT, verts=12))
-        parts.append(ball("Elbow." + sfx, (0.066, 0.066, 0.066), (sx, 0.0, 1.11), COAT, subdiv=1))
-        parts.append(taper("Forearm." + sfx, 0.052, 0.064, 0.27, (sx, 0.01, 0.96), COAT, verts=12))
-        parts.append(ball("Hand." + sfx, (0.075, 0.085, 0.105), (sx, 0.02, 0.81), SKIN, subdiv=2))
+    # Qo'llar: miltiqni IKKI QO'LLAB oldinda ushlaydi (low-ready) — tana oldida, alohida.
+    R_grip = (0.13, 0.05, 1.06)      # o'ng kaft (grip — miltiq orqasi)
+    L_grip = (0.08, -0.24, 1.06)     # chap kaft (foreend — miltiq oldi)
+    R_sh = (0.30, 0.0, 1.45); R_el = (0.36, 0.09, 1.20)    # o'ng yelka -> tirsak
+    L_sh = (-0.30, 0.0, 1.45); L_el = (-0.06, -0.02, 1.22)  # chap yelka -> tirsak
+    parts.append(limb("UpperArm.R", R_sh, R_el, 0.08, 0.062, COAT))
+    parts.append(ball("Elbow.R", (0.066, 0.066, 0.066), R_el, COAT, subdiv=1))
+    parts.append(limb("Forearm.R", R_el, R_grip, 0.062, 0.05, COAT))
+    parts.append(limb("UpperArm.L", L_sh, L_el, 0.08, 0.062, COAT))
+    parts.append(ball("Elbow.L", (0.066, 0.066, 0.066), L_el, COAT, subdiv=1))
+    parts.append(limb("Forearm.L", L_el, L_grip, 0.062, 0.05, COAT))
+    # Kaftlar: palma + barmoqlar (pastda, miltiqni o'rab) + bosh barmoq (ichkari tomonda)
+    for G, sfx, thumb_dx in [(R_grip, "R", -0.045), (L_grip, "L", 0.045)]:
+        gx, gy, gz = G
+        parts.append(ball("Hand." + sfx, (0.072, 0.075, 0.06), (gx, gy, gz + 0.012), SKIN, subdiv=2))
+        parts.append(box("Fingers." + sfx, (0.082, 0.085, 0.05), (gx, gy, gz - 0.045), SKIN))
+        parts.append(box("Thumb." + sfx, (0.03, 0.07, 0.05), (gx + thumb_dx, gy + 0.015, gz + 0.005), SKIN))
 
     # Bo'yin + bosh + yuz (jag', qosh, burun)
     parts.append(taper("Neck", 0.07, 0.062, 0.13, (0.0, 0.0, 1.57), SKIN, verts=12))
@@ -253,9 +286,9 @@ def build_soldier(faction, cfg):
     parts.append(ball("HelmetLug.L", (0.03, 0.03, 0.028), (-0.145, 0.0, 1.80), HELMET, subdiv=1))
     parts.append(ball("HelmetLug.R", (0.03, 0.03, 0.028), (0.145, 0.0, 1.80), HELMET, subdiv=1))
 
-    # Miltiq + nayza (o'ng qo'lda)
-    parts.append(box("Rifle", (0.05, 0.85, 0.07), (0.18, 0.18, 1.02), WOOD))
-    parts.append(box("Bayonet", (0.022, 0.28, 0.022), (0.18, 0.74, 1.02), METAL))
+    # Miltiq + nayza — IKKI kaft orasidan oldinga (tana oldida, alohida ko'rinadi)
+    parts.append(box("Rifle", (0.05, 0.88, 0.07), (0.105, -0.22, 1.06), WOOD))
+    parts.append(box("Bayonet", (0.02, 0.30, 0.02), (0.105, -0.72, 1.06), METAL))
 
     # --- Rigid skinning: har qismga suyak nomli vertex group (vazn 1.0) ---
     for o in parts:
@@ -324,51 +357,58 @@ def build_soldier(faction, cfg):
         for b in ALL_BONES:
             key(frame, b, pose.get(b, (0, 0, 0)))
 
-    # idle — tinch nafas olish + og'irlik o'tkazish (jonliroq, ~72 kadr).
-    new_action("idle")
-    key_pose(1, {})
-    key_pose(24, {"Spine": (1.6, 0, 0), "Head": (1.6, 0, 0), "Hips": (0.6, 0, 0)})
-    key_pose(48, {"Spine": (0.4, 0, 1.2), "Head": (0.0, 0, 1.5)})
-    key_pose(72, {})
+    # Qo'llar miltiqni doimo IKKI QO'LLAB ushlaydi — har animatsiyada ArmL==ArmR
+    # (alohida silkitmaymiz, aks holda kaftlar miltiqdan ajrab ketadi). kp() shu
+    # "ushlash" pozasini asos qilib, ustiga animatsiya pozasini qo'yadi.
+    ARMS_HOLD = {"ArmL": (-5, 0, 0), "ArmR": (-5, 0, 0)}
 
+    def kp(frame, pose):
+        merged = dict(ARMS_HOLD)
+        merged.update(pose)
+        key_pose(frame, merged)
+
+    # idle — tinch nafas; qo'llar miltiqni ushlab turadi.
+    new_action("idle")
+    kp(1, {})
+    kp(24, {"Spine": (1.4, 0, 0), "Head": (1.4, 0, 0), "Hips": (0.5, 0, 0)})
+    kp(48, {"Spine": (0.3, 0, 1.0), "Head": (0.0, 0, 1.2)})
+    kp(72, {})
+
+    # run — oyoqlar yuradi, tana tebranadi; qo'llar miltiqni ushlab turadi (silkimaydi).
     new_action("run")
     for f, s in [(1, 1), (12, -1), (24, 1)]:
-        key_pose(f, {
-            "LegL": (28 * s, 0, 0), "LegR": (-28 * s, 0, 0),
-            "ArmL": (-30 * s, 0, 0), "ArmR": (30 * s, 0, 0),
-            "Spine": (6, 0, 0),
-        })
+        kp(f, {"LegL": (30 * s, 0, 0), "LegR": (-30 * s, 0, 0), "Spine": (7, 0, 0)})
 
-    new_action("attack")
-    key_pose(1, {"ArmR": (10, 0, 0)})
-    key_pose(5, {"ArmR": (-78, 0, 0), "Spine": (16, 0, 0)})
-    key_pose(13, {"ArmR": (10, 0, 0)})
-
-    new_action("die")
-    key_pose(1, {})
-    key_pose(13, {"Hips": (-72, 0, 0), "LegL": (38, 0, 0), "LegR": (22, 0, 0)})
-    key_pose(22, {"Hips": (-88, 0, 0), "LegL": (42, 0, 0), "LegR": (26, 0, 0)})
-
-    # walk — xotirjam patrul yurishi (run'dan sekinroq, kichikroq qadam).
+    # walk — sekin patrul yurishi.
     new_action("walk")
     for f, s in [(1, 1), (16, -1), (32, 1)]:
-        key_pose(f, {
-            "LegL": (16 * s, 0, 0), "LegR": (-16 * s, 0, 0),
-            "ArmL": (-12 * s, 0, 0), "ArmR": (12 * s, 0, 0),
-            "Spine": (3, 0, 0),
-        })
+        kp(f, {"LegL": (17 * s, 0, 0), "LegR": (-17 * s, 0, 0), "Spine": (3, 0, 0)})
 
-    # aim — miltiqni ko'tarib nishonga olish holati (ranged jangda; loop).
+    # aim — rest poza allaqachon oldinga nishonga qaragan; qo'l BURILMAYDI (aks holda
+    # uzun miltiq og'adi). Faqat tana biroz oldinga + bosh egilib "moljalga oladi".
     new_action("aim")
-    key_pose(1, {"ArmR": (-72, 0, 0), "ArmL": (-50, 0, 0), "Spine": (8, 0, 0), "Head": (-4, 0, 0)})
-    key_pose(24, {"ArmR": (-74, 0, 0), "ArmL": (-52, 0, 0), "Spine": (9, 0, 0), "Head": (-4, 0, 0)})
+    kp(1, {"Spine": (4, 0, 0), "Head": (-9, 0, 0)})
+    kp(24, {"Spine": (5, 0, 0), "Head": (-9, 0, 0)})
 
-    # alert — atrofga qarash (post/tekshiruvda boshni o'ng-chapga buradi).
+    # attack — nayza zarbasi: BUTUN tana oldinga engashadi (qo'llar Spine bolasi —
+    # birga oldinga "sanchadi") + oldinga qadam. Qo'l alohida burilmaydi (toza ushlash).
+    new_action("attack")
+    kp(1, {})
+    kp(6, {"Spine": (26, 0, 0), "Hips": (6, 0, 0), "LegR": (-28, 0, 0)})
+    kp(14, {})
+
+    # die — orqaga yiqilish.
+    new_action("die")
+    kp(1, {})
+    kp(13, {"Hips": (-72, 0, 0), "LegL": (38, 0, 0), "LegR": (22, 0, 0)})
+    kp(22, {"Hips": (-88, 0, 0), "LegL": (42, 0, 0), "LegR": (26, 0, 0)})
+
+    # alert — atrofga qarash (qo'llar miltiqni ushlab turadi).
     new_action("alert")
-    key_pose(1, {})
-    key_pose(18, {"Head": (0, 0, 20), "Spine": (0, 0, 7)})
-    key_pose(36, {"Head": (0, 0, -20), "Spine": (0, 0, -7)})
-    key_pose(54, {})
+    kp(1, {})
+    kp(18, {"Head": (0, 0, 20), "Spine": (0, 0, 6)})
+    kp(36, {"Head": (0, 0, -20), "Spine": (0, 0, -6)})
+    kp(54, {})
 
     # --- glTF eksport (faqat armature + mesh) ---
     bpy.ops.object.mode_set(mode='OBJECT')

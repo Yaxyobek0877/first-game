@@ -25,3 +25,11 @@ class_name WeaponData
 @export var model_node: String = "AvtomatModel"  ## player.tscn ichidagi FP viewmodel tugun nomi
 @export var view_model: String = ""              ## avatar/loadout ekrani 3D preview uchun .glb yo'li
 @export var sfx_path: String = "res://assets/audio/shot.wav"  ## otish tovushi (WAV)
+@export var avatar_display_size: float = 0.85    ## avatar ekranida qurolning eng uzun o'lchami (m) —
+                                                  ## loadout.gd AABB'ni shunga moslab masshtablaydi (proporsional)
+
+# --- Otish "tepishi" (recoil) — viewmodel animatsiyasi (weapon.gd ishlatadi) ---
+@export var recoil_back: float = 0.05    ## Orqaga (kameraga) siljish (m)
+@export var recoil_up: float = 0.015     ## Tepaga siljish (m)
+@export var recoil_pitch: float = 5.0    ## Quvurni tepaga ko'taradigan burilish (daraja)
+@export var bolt_action: bool = false    ## true = snayper: har otishdan keyin zatvor harakati

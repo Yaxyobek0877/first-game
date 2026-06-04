@@ -84,9 +84,34 @@ func _show_weapon(path: String) -> void:
 		return
 	_weapon_instance = scene.instantiate()
 	holder.add_child(_weapon_instance)
-	# Avatarda yaxshi ko'rinishi uchun: kattaroq + yon tomoni ko'ringan holatda.
-	_weapon_instance.scale = Vector3.ONE * 2.2
+	# Yon tomoni ko'ringan holatda (barrel gorizontal).
 	_weapon_instance.rotation_degrees = Vector3(0, 90, 0)
+	# AVTO-MOSLASH: qurolning eng uzun o'lchamini avatar_display_size ga keltiramiz —
+	# shunda har qurol (topponcha/avtomat/snayper) proporsional, biri ulkan ko'rinmaydi.
+	var longest: float = _weapon_longest_dim(_weapon_instance)
+	var target: float = w.avatar_display_size if w.avatar_display_size > 0.0 else 0.85
+	var s: float = (target / longest) if longest > 0.001 else 1.0
+	_weapon_instance.scale = Vector3.ONE * s
+
+
+## Qurol modeli mesh'ining (Blender birliklarida ~metr) eng uzun o'lchamini qaytaradi.
+func _weapon_longest_dim(inst: Node) -> float:
+	var mi: MeshInstance3D = _find_mesh(inst)
+	if mi == null or mi.mesh == null:
+		return 1.0
+	var sz: Vector3 = mi.mesh.get_aabb().size
+	return maxf(sz.x, maxf(sz.y, sz.z))
+
+
+## Tugun ostidagi birinchi MeshInstance3D ni topadi (glb odatda bitta birlashtirilgan mesh).
+func _find_mesh(n: Node) -> MeshInstance3D:
+	if n is MeshInstance3D:
+		return n
+	for c in n.get_children():
+		var m: MeshInstance3D = _find_mesh(c)
+		if m != null:
+			return m
+	return null
 
 
 ## Ikkala slot quroli statistikasini ko'rsatadi.

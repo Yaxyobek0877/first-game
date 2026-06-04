@@ -43,6 +43,14 @@ var _slide_cd: float = 0.0               ## Cooldown taymeri
 var _slide_dir: Vector3 = Vector3.ZERO   ## Slayd yo'nalishi (boshlanishda qotiriladi)
 var _crouch_tap_time: float = -999.0     ## Oxirgi Ctrl bosilgan vaqt (double-tap aniqlash)
 
+# --- Egilish (lean / peek) — Q chapga, E o'ngga (beli bukilishi hissi) ---
+@export var lean_offset: float = 0.45    ## Egilganda kamera yon siljishi (m)
+@export var lean_angle: float = 14.0     ## Egilganda kamera ag'darilishi (daraja) — beli bukilishi
+@export var lean_lerp: float = 10.0      ## Egilish silliqligi
+const SLIDE_ROLL_DEG := 6.0              ## Slaydda kamera ag'darilishi (daraja)
+var _lean: float = 0.0                   ## Joriy egilish: -1 (chap) .. +1 (o'ng)
+var _slide_roll_cur: float = 0.0         ## Slayd ag'darilishi (silliq, _update_view_lean'da)
+
 # --- Narvon (ladder) — minoraga chiqish/tushish ---
 @export var climb_speed: float = 3.2     ## Narvonda yuqori/quyi tezlik (m/s)
 var _climbing: bool = false              ## Hozir narvondami
@@ -109,6 +117,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	# Egilish (Q/E) + kamera ag'darilishi — har kadr, holatdan qat'i nazar (return'lardan oldin).
+	_update_view_lean(delta)
+
 	# 0) Narvon rejimi — normal harakatdan OLDIN (gravitatsiya/stance'siz).
 	if _climb_cd > 0.0:
 		_climb_cd -= delta
@@ -275,13 +286,12 @@ func _process_slide(delta: float) -> void:
 	var spd: float = lerpf(crouch_speed, slide_speed, frac)
 	velocity.x = _slide_dir.x * spd
 	velocity.z = _slide_dir.z * spd
-	# Past holat + biroz qo'shimcha tushish + kamera yon ag'darilishi (slayd hissi).
+	# Past holat + biroz qo'shimcha tushish (slayd kamera ag'darilishi _update_view_lean'da).
 	var k: float = clampf(delta * stance_lerp, 0.0, 1.0)
 	_cur_height = lerpf(_cur_height, crouch_height, k)
 	_cur_head = lerpf(_cur_head, crouch_head - 0.12, k)
 	_apply_capsule(_cur_height)
 	head.position.y = _cur_head
-	head.rotation.z = lerpf(head.rotation.z, deg_to_rad(6.0), clampf(delta * 9.0, 0.0, 1.0))
 	move_and_slide()
 	_regen(delta)
 	# Sakrash slaydni bekor qiladi (slide-jump); vaqt tugasa yoki sekinlashsa ham tugaydi.
@@ -293,11 +303,43 @@ func _process_slide(delta: float) -> void:
 		_end_slide()
 
 
-## Slaydni tugatadi: kamera ag'darilishini tiklaydi, cooldown qo'yadi (holat keyin _update_stance da).
+## Slaydni tugatadi: cooldown qo'yadi (holat keyin _update_stance da; roll _update_view_lean'da so'nadi).
 func _end_slide() -> void:
 	_sliding = false
 	_slide_cd = slide_cooldown
-	head.rotation.z = 0.0
+
+
+## Egilish (Q/E) + kamera ag'darilishi: yon siljish (head.position.x) + roll (head.rotation.z).
+## Slaydda lean o'rniga slayd ag'darilishi; narvonda head.position.x ni climb bob boshqaradi.
+func _update_view_lean(delta: float) -> void:
+	var target := 0.0
+	if not _climbing and not _sliding and not _is_dead:
+		if Input.is_action_pressed("lean_right"):
+			target += 1.0
+		if Input.is_action_pressed("lean_left"):
+			target -= 1.0
+		target = _lean_allowed(target)
+	_lean = lerpf(_lean, target, clampf(delta * lean_lerp, 0.0, 1.0))
+	# Slayd ag'darilishi — faqat slaydda; silliq kirib-chiqadi.
+	var sroll: float = SLIDE_ROLL_DEG if _sliding else 0.0
+	_slide_roll_cur = lerpf(_slide_roll_cur, sroll, clampf(delta * 9.0, 0.0, 1.0))
+	if not _climbing:
+		head.position.x = _lean * lean_offset   # yon siljish (egilish)
+	# Roll: egilish (o'ng=manfiy) + slayd ag'darilishi (beli bukilishi hissi).
+	head.rotation.z = deg_to_rad(-_lean * lean_angle + _slide_roll_cur)
+
+
+## Egilish yo'nalishida devor bo'lsa egilmaymiz (kamera devorga kirib ketmasin).
+func _lean_allowed(target: float) -> float:
+	if is_zero_approx(target):
+		return 0.0
+	var space := get_world_3d().direct_space_state
+	var from := global_position + Vector3(0.0, _cur_head, 0.0)
+	var to := from + global_transform.basis.x * (lean_offset * 1.3 * target)
+	var q := PhysicsRayQueryParameters3D.create(from, to)
+	q.collision_mask = 1   # faqat world
+	q.exclude = [get_rid()]
+	return 0.0 if not space.intersect_ray(q).is_empty() else target
 
 
 ## Kapsula balandligini o'rnatadi va markazini ko'taradi (oyoq yerda qoladi, tepaga "sakramaydi").
