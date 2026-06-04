@@ -67,7 +67,8 @@ func _build_details() -> void:
 	_low_wall(Vector3(6, 0, 13), Vector3(4.5, 1.1, 1.2))
 
 
-## Kuzatuv minorasi: 4 oyoq + platforma + panjara + tom, ostida nav-to'siq.
+## Kuzatuv minorasi: 4 oyoq + platforma + panjara + (baland) tom + NARVON.
+## O'yinchi janub yuzidagi narvondan chiqib-tusha oladi (player.gd climb mexanikasi).
 func _build_tower(base: Vector3) -> void:
 	var t := Node3D.new()
 	t.name = "Tower"
@@ -88,27 +89,86 @@ func _build_tower(base: Vector3) -> void:
 			_mesh_box(t, Vector3(0.3, leg_h, 0.3), lp, _wood)
 			_add_collision(body, Vector3(0.3, leg_h, 0.3), lp)
 
-	# Platforma (tepada).
+	# Platforma (tepada). Sirt: plat_y + 0.15 = 5.15.
 	var plat_y: float = leg_h
+	var plat_top: float = plat_y + 0.15
 	_mesh_box(t, Vector3(3.2, 0.3, 3.2), Vector3(0, plat_y, 0), _wood)
 	_add_collision(body, Vector3(3.2, 0.3, 3.2), Vector3(0, plat_y, 0))
 
-	# Panjara (4 tomon).
-	var r_y: float = plat_y + 0.5
-	_mesh_box(t, Vector3(3.2, 0.6, 0.12), Vector3(0, r_y, 1.55), _wood)
-	_mesh_box(t, Vector3(3.2, 0.6, 0.12), Vector3(0, r_y, -1.55), _wood)
-	_mesh_box(t, Vector3(0.12, 0.6, 3.2), Vector3(1.55, r_y, 0), _wood)
-	_mesh_box(t, Vector3(0.12, 0.6, 3.2), Vector3(-1.55, r_y, 0), _wood)
+	# Panjara (bel balandligi 0.9) — ko'rinish + COLLISION (o'yinchi chetdan tushmasin).
+	# 3 tomon to'liq; janub (narvon) tomoni o'rtada ochiq (faqat narvondan o'tiladi).
+	var r_h: float = 0.9
+	var r_y: float = plat_top + r_h * 0.5
+	for rail in [
+		[Vector3(3.2, r_h, 0.12), Vector3(0, r_y, -1.55)],     # shimol
+		[Vector3(0.12, r_h, 3.2), Vector3(1.55, r_y, 0)],      # sharq
+		[Vector3(0.12, r_h, 3.2), Vector3(-1.55, r_y, 0)],     # g'arb
+		[Vector3(1.0, r_h, 0.12), Vector3(-1.1, r_y, 1.55)],   # janub (chap segment)
+		[Vector3(1.0, r_h, 0.12), Vector3(1.1, r_y, 1.55)],    # janub (o'ng segment)
+	]:
+		_mesh_box(t, rail[0], rail[1], _wood)
+		_add_collision(body, rail[0], rail[1])
 
-	# Tom ustunlari + tom.
-	var post_y: float = plat_y + 0.95
+	# Tom — BALAND (o'yinchi tik tursin: platforma ustida ~2.5 m bo'shliq).
+	var post_h: float = 2.55
+	var post_cy: float = plat_top + post_h * 0.5
 	for sx2 in [-1.0, 1.0]:
 		for sz2 in [-1.0, 1.0]:
-			_mesh_box(t, Vector3(0.12, 1.1, 0.12), Vector3(sx2 * 1.4, post_y, sz2 * 1.4), _dark)
-	_mesh_box(t, Vector3(3.7, 0.18, 3.7), Vector3(0, post_y + 0.62, 0), _dark)
+			_mesh_box(t, Vector3(0.12, post_h, 0.12), Vector3(sx2 * 1.4, post_cy, sz2 * 1.4), _dark)
+	_mesh_box(t, Vector3(3.7, 0.18, 3.7), Vector3(0, plat_top + post_h + 0.1, 0), _dark)
 
-	# Nav-to'siq: butun tagligini qoplaydi — dushmanlar minorani aylanib o'tadi.
-	_nav_obstacle(Vector3(3.2, 6.0, 3.2), base + Vector3(0, 3.0, 0))
+	# --- NARVON (janub yuzida) ---
+	_build_ladder(t, plat_top)
+
+	# Nav-to'siq: tagligi + narvon (dushmanlar minora va narvonni aylanib o'tadi).
+	_nav_obstacle(Vector3(3.4, 6.0, 4.8), base + Vector3(0, 3.0, 0.6))
+
+
+## Narvon: 2 yon ustun + ko'ndalang pog'onalar (ko'rinish, collision'siz) +
+## climb Area3D (o'yinchini sezadi, metama'lumot bilan).
+func _build_ladder(t: Node3D, plat_top: float) -> void:
+	var lz: float = 2.3                 # narvon z (local) — platforma chetidan tashqarida (snag bo'lmasin)
+	var top: float = plat_top + 0.15    # narvon balandligi (~5.3)
+	# 2 vertikal yon ustun
+	for sx in [-0.32, 0.32]:
+		_mesh_box(t, Vector3(0.07, top, 0.07), Vector3(sx, top * 0.5, lz), _wood)
+	# ko'ndalang pog'onalar
+	var y: float = 0.35
+	while y <= top - 0.2:
+		_mesh_box(t, Vector3(0.78, 0.06, 0.06), Vector3(0, y, lz), _wood)
+		y += 0.4
+
+	# Climb zonasi (Area3D) — platforma chetidan narvon oldigacha keng (yuqori/quyi kirish).
+	var area := Area3D.new()
+	area.collision_layer = 0
+	area.collision_mask = 2             # faqat player (layer 2)
+	area.monitoring = true
+	area.monitorable = false
+	area.add_to_group("ladder")
+	var cs := CollisionShape3D.new()
+	var sh := BoxShape3D.new()
+	sh.size = Vector3(1.3, plat_top + 0.8, 2.2)
+	cs.shape = sh
+	cs.position = Vector3(0, (plat_top + 0.8) * 0.5, 1.8)
+	area.add_child(cs)
+	t.add_child(area)
+
+	# Metama'lumotlar (player o'qiydi) — DUNYO koordinatasida.
+	var base := t.position
+	area.set_meta("center", Vector3(base.x, 0.0, base.z + lz))   # narvon o'qi (x,z)
+	area.set_meta("exit_dir", Vector3(0, 0, -1))                 # platformaga (tower -z)
+	area.set_meta("top_y", base.y + plat_top)                    # platforma sirti (oyoq darajasi)
+	area.body_entered.connect(_on_ladder_body.bind(area, true))
+	area.body_exited.connect(_on_ladder_body.bind(area, false))
+
+
+## Narvon zonasiga o'yinchi kirsa/chiqsa — player.gd ga xabar beramiz (duck typing).
+func _on_ladder_body(body: Node, area: Area3D, entered: bool) -> void:
+	if entered:
+		if body.has_method("enter_ladder"):
+			body.enter_ladder(area)
+	elif body.has_method("exit_ladder"):
+		body.exit_ladder(area)
 
 
 ## Bochka — ko'rinadigan silindr + collision + kichik nav-to'siq.
