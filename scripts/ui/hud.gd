@@ -9,10 +9,13 @@ extends CanvasLayer
 @onready var weapon_label: Label = $WeaponLabel
 @onready var wave_label: Label = $WaveLabel
 @onready var record_label: Label = $RecordLabel
+@onready var crosshair: Label = $Crosshair
+@onready var damage_overlay: ColorRect = $DamageOverlay
 
 const RECORD_PATH := "user://record.save"
 var score: int = 0
 var record: int = 0
+var _prev_health: float = -1.0   ## Zarar (jon kamayishi) ni aniqlash uchun
 
 
 func _ready() -> void:
@@ -22,6 +25,7 @@ func _ready() -> void:
 	Events.enemy_died.connect(_on_enemy_died)
 	Events.weapon_changed.connect(_on_weapon_changed)
 	Events.wave_started.connect(_on_wave_started)
+	Events.target_hit.connect(_on_target_hit)
 	_load_record()
 	_update_score()
 	_update_record()
@@ -33,6 +37,27 @@ func _on_ammo_changed(current: int, max_ammo: int) -> void:
 
 func _on_health_changed(current: float, max_health: float) -> void:
 	health_label.text = "Jon: %d / %d" % [int(current), int(max_health)]
+	# Jon KAMAYSA (zarar) — ekran chetlari qizil "chaqnaydi".
+	if _prev_health >= 0.0 and current < _prev_health - 0.01:
+		_flash_damage()
+	_prev_health = current
+
+
+## Zarar olganda qizil overlay chaqnashi.
+func _flash_damage() -> void:
+	damage_overlay.color = Color(0.7, 0.0, 0.0, 0.45)
+	var tw := create_tween()
+	tw.tween_property(damage_overlay, "color:a", 0.0, 0.4)
+
+
+## O'q nishonga tekkanda crosshair qisqa "hit-marker" (qizarib, kattalashadi).
+func _on_target_hit() -> void:
+	crosshair.modulate = Color(1.0, 0.4, 0.3)
+	crosshair.scale = Vector2(1.5, 1.5)
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(crosshair, "modulate", Color.WHITE, 0.18)
+	tw.tween_property(crosshair, "scale", Vector2.ONE, 0.18)
 
 
 func _on_enemy_died(_enemy: Node) -> void:

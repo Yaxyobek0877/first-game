@@ -26,3 +26,6 @@ signal weapon_changed(weapon_name: String)
 
 ## Yangi to'lqin (wave) boshlanganda yuboriladi. HUD to'lqin raqamini ko'rsatadi.
 signal wave_started(wave: int)
+
+## O'q nishonga (take_damage'li narsaga) tekkanda. HUD crosshair hit-marker ko'rsatadi.
+signal target_hit()

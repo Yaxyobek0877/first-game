@@ -17,8 +17,11 @@ extends CharacterBody3D
 
 # --- Jon ---
 @export var max_health: float = 100.0
+@export var regen_rate: float = 8.0      ## Jon tiklanish tezligi (HP/s)
+@export var regen_delay: float = 4.0     ## Zarardan keyin shu vaqtdan so'ng tiklanish boshlanadi
 var health: float
 var _is_dead: bool = false       ## O'lim oqimi faqat bir marta ishlashi uchun (qayta o'lmaslik)
+var _since_damage: float = 999.0 ## Oxirgi zarardan beri o'tgan vaqt (regen uchun)
 var _step_player: AudioStreamPlayer   ## Qadam tovushi
 var _step_time: float = 0.0           ## Keyingi qadamgacha qolgan vaqt
 
@@ -86,6 +89,18 @@ func _physics_process(delta: float) -> void:
 	# 5) Qadam tovushi — yerda yurganda interval bilan.
 	_footsteps(delta)
 
+	# 6) Jon tiklanishi — zarardan keyin biroz kutib, sekin tiklanadi.
+	_regen(delta)
+
+
+func _regen(delta: float) -> void:
+	if _is_dead:
+		return
+	_since_damage += delta
+	if _since_damage >= regen_delay and health < max_health:
+		health = minf(max_health, health + regen_rate * delta)
+		Events.player_health_changed.emit(health, max_health)
+
 
 ## Yerda harakatlanganda qadam tovushini interval bilan chaladi (yugurganda tezroq).
 func _footsteps(delta: float) -> void:
@@ -106,6 +121,7 @@ func _footsteps(delta: float) -> void:
 func take_damage(amount: float) -> void:
 	if _is_dead:
 		return
+	_since_damage = 0.0   # tiklanish taymerini qayta boshlaymiz
 	health = maxf(0.0, health - amount)
 	Events.player_health_changed.emit(health, max_health)
 	if health <= 0.0:

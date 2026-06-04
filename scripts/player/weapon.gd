@@ -215,6 +215,7 @@ func _shoot() -> void:
 		# Agar tekkan narsa "take_damage" funksiyasiga ega bo'lsa — zarar beramiz.
 		if target != null and target.has_method("take_damage"):
 			target.take_damage(w.damage)
+			Events.target_hit.emit()   # HUD hit-marker ko'rsatadi
 		_spawn_impact(point)
 	else:
 		tracer_end = ray.to_global(ray.target_position)
