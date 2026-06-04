@@ -17,6 +17,8 @@ var sfx_volume: float = 0.9
 ## Sichqoncha sezgirligi (player.gd `_unhandled_input` da ishlatiladi).
 var mouse_sensitivity: float = 0.0025
 var fullscreen: bool = false
+## Ekrandagi FPS ko'rsatkichi ko'rinsinmi (HUD shuni o'qiydi).
+var show_fps: bool = false
 
 ## Sozlama o'zgarganda yuboriladi (UI o'zaro sinxron bo'lishi uchun, kelajak uchun).
 signal changed()
@@ -35,6 +37,13 @@ func apply_all() -> void:
 	_apply_bus("Music", music_volume)
 	_apply_bus("SFX", sfx_volume)
 	_apply_window()
+	_apply_fps()
+
+
+## FPS chegarasi: cheksiz (0) — qurilma imkoniyatiga qarab chiqaradi (60 ga qotirilmaydi).
+## Vsync project.godot da o'chirilgan (window/vsync/vsync_mode=0).
+func _apply_fps() -> void:
+	Engine.max_fps = 0
 
 
 ## Chiziqli 0..1 ovozni shinaning (bus) db qiymatiga yozadi. 0 da mute.
@@ -84,6 +93,11 @@ func set_fullscreen(on: bool) -> void:
 	_save_deferred()
 
 
+func set_show_fps(on: bool) -> void:
+	show_fps = on
+	_save_deferred()   # changed signal HUD'ni jonli yangilaydi
+
+
 # --- Saqlash / yuklash (ConfigFile — oddiy INI uslubidagi format) ---
 
 var _save_queued: bool = false
@@ -105,6 +119,7 @@ func save_settings() -> void:
 	cfg.set_value("audio", "sfx", sfx_volume)
 	cfg.set_value("input", "mouse_sensitivity", mouse_sensitivity)
 	cfg.set_value("video", "fullscreen", fullscreen)
+	cfg.set_value("video", "show_fps", show_fps)
 	cfg.save(PATH)
 
 
@@ -117,3 +132,4 @@ func load_settings() -> void:
 	sfx_volume = cfg.get_value("audio", "sfx", sfx_volume)
 	mouse_sensitivity = cfg.get_value("input", "mouse_sensitivity", mouse_sensitivity)
 	fullscreen = cfg.get_value("video", "fullscreen", fullscreen)
+	show_fps = cfg.get_value("video", "show_fps", show_fps)

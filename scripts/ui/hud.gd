@@ -13,6 +13,7 @@ extends CanvasLayer
 @onready var hitmarker: TextureRect = $Hitmarker
 @onready var weapon_icon: TextureRect = $WeaponIcon
 @onready var damage_overlay: ColorRect = $DamageOverlay
+@onready var fps_label: Label = $FpsLabel
 
 ## Qurol ikonkalari (qurol almashganda almashtiriladi).
 const TEX_AVTOMAT := preload("res://assets/ui/hud/icon_avtomat.png")
@@ -22,6 +23,7 @@ const RECORD_PATH := "user://record.save"
 var score: int = 0
 var record: int = 0
 var _prev_health: float = -1.0   ## Zarar (jon kamayishi) ni aniqlash uchun
+var _fps_accum: float = 1.0      ## FPS yorlig'ini sekinroq yangilash uchun (boshida darrov chiqsin)
 
 
 func _ready() -> void:
@@ -33,9 +35,27 @@ func _ready() -> void:
 	Events.wave_started.connect(_on_wave_started)
 	Events.target_hit.connect(_on_target_hit)
 	Events.scoped.connect(_on_scoped)
+	# FPS ko'rsatkichi: Sozlamalardan ko'rinishi olinadi, o'zgarsa jonli yangilanadi.
+	fps_label.visible = GameSettings.show_fps
+	GameSettings.changed.connect(_on_settings_changed)
 	_load_record()
 	_update_score()
 	_update_record()
+
+
+## FPS yorlig'i ko'rinsa — sekundiga ~4 marta yangilanadi (har kadr emas — barqaror raqam).
+func _process(delta: float) -> void:
+	if not fps_label.visible:
+		return
+	_fps_accum += delta
+	if _fps_accum >= 0.25:
+		_fps_accum = 0.0
+		fps_label.text = "FPS: %d" % Engine.get_frames_per_second()
+
+
+## Sozlama o'zgarganda (masalan pauza menyusida FPS yoqilsa) — ko'rinishni yangilaymiz.
+func _on_settings_changed() -> void:
+	fps_label.visible = GameSettings.show_fps
 
 
 func _on_ammo_changed(current: int, max_ammo: int) -> void:

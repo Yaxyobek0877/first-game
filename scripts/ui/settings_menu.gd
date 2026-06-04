@@ -18,6 +18,7 @@ signal closed
 @onready var sfx_value: Label = %SfxValue
 @onready var sens_value: Label = %SensValue
 @onready var fullscreen_check: CheckButton = %FullscreenCheck
+@onready var fps_check: CheckButton = %FpsCheck
 @onready var back_button: Button = %BackButton
 
 
@@ -30,6 +31,7 @@ func _ready() -> void:
 	sfx_slider.set_value_no_signal(GameSettings.sfx_volume)
 	sens_slider.set_value_no_signal(GameSettings.mouse_sensitivity)
 	fullscreen_check.set_pressed_no_signal(GameSettings.fullscreen)
+	fps_check.set_pressed_no_signal(GameSettings.show_fps)
 	_refresh_labels()
 
 	# Signallarga ulanamiz.
@@ -38,6 +40,7 @@ func _ready() -> void:
 	sfx_slider.value_changed.connect(_on_sfx)
 	sens_slider.value_changed.connect(_on_sens)
 	fullscreen_check.toggled.connect(_on_fullscreen)
+	fps_check.toggled.connect(_on_fps)
 	back_button.pressed.connect(_on_back)
 	back_button.grab_focus()
 
@@ -72,6 +75,10 @@ func _on_sens(v: float) -> void:
 
 func _on_fullscreen(on: bool) -> void:
 	GameSettings.set_fullscreen(on)
+
+
+func _on_fps(on: bool) -> void:
+	GameSettings.set_show_fps(on)
 
 
 func _on_back() -> void:
