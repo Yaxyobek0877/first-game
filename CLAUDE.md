@@ -80,7 +80,9 @@ first_game/
 ├── README.md              # Inson uchun hujjat + boshqaruv
 ├── docs/SENARIY.md        # O'yin hikoyasi (story bible) — «QAYTISH»
 ├── icon.svg
-├── assets/models/         # Blender'da yasalgan .glb modellar (asset pipeline)
+├── assets/
+│   ├── blender/soldier.py # Blender generator (model + rig + animatsiya → .glb)
+│   └── models/*.glb       # Eksport qilingan modellar (kron_soldier.glb)
 ├── resources/
 │   └── weapons/{avtomat=pistol.tres, rifle.tres}  # WeaponData sozlamalari
 ├── scenes/
@@ -116,6 +118,23 @@ C:\Users\hcsah\AppData\Local\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_M
 - **O'yinni ishga tushirish:** muharrir ichida `F5`, yoki `godot --path D:\first_game`
 - **Headless tekshiruv (xato bormi?):** `godot --headless --path D:\first_game --quit-after 120`
   → toza bo'lsa faqat engine bannerini chiqaradi, `ERROR:` / `SCRIPT ERROR:` qatorlar bo'lmaydi.
+
+---
+
+## 🎨 Assetlar (3D modellar — Blender pipeline)
+
+Modellar **Blender 5.1** da Python skript bilan headless yasaladi va **glTF (.glb)** ga
+eksport qilinadi (Godot avtomatik import qiladi). Generator skriptlar `assets/blender/` da —
+qayta yaratiladigan (reproducible), izohlar o'zbekcha. **Uslub:** stilize low-poly, 1-jahon urushi davri.
+
+- **Blender:** `C:\Users\hcsah\...` → `C:\Program Files\Blender Foundation\Blender 5.1\blender.exe`
+- **Model yasash/yangilash:** `& "<blender>" --background --python assets\blender\soldier.py`
+  → `assets/models/kron_soldier.glb` (animatsiyalar bilan) + `_preview_*.png` render'lar (gitignore'da).
+- **Tekshirish:** "ko'rmasdan yasamaslik" uchun Blender render'i (`_preview_*.png`) Read bilan ko'riladi.
+- **Animatsiya:** rigid skinning (har qism 1 suyak); har Blender action = alohida glTF animatsiya
+  (`idle`/`run`/`attack`/`die`). Har animatsiya self-contained (barcha suyaklarni belgilaydi).
+- **Integratsiya:** `enemy.tscn` modelni instance qiladi; `enemy.gd` AnimationPlayer'ni FSM bilan
+  boshqaradi (`find_child` orqali topadi). Collision kapsula alohida qoladi (fizika).
 
 ---
 

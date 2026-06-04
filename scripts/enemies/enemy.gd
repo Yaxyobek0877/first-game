@@ -35,23 +35,28 @@ var _player: Node3D = null
 var health: float
 
 @onready var nav: NavigationAgent3D = $NavigationAgent3D
-@onready var mesh: MeshInstance3D = $MeshInstance3D
 @onready var collision_shape: CollisionShape3D = $CollisionShape3D
 @onready var attack_timer: Timer = $AttackTimer
-var _material: StandardMaterial3D
-var _base_color: Color = Color(0.7, 0.25, 0.7)   ## binafsha — nishondan (qizil) farqlash uchun
+@onready var model: Node3D = $Model
+var _anim: AnimationPlayer = null              ## glTF model ichidagi animatsiyalar
+var _mesh_inst: MeshInstance3D = null          ## "flash" effekti uchun mesh
 
 
 func _ready() -> void:
 	health = max_health
-	# Rang "flash" effekti uchun o'zimizning materialni yaratamiz (dummy'dagidek).
-	_material = StandardMaterial3D.new()
-	_material.albedo_color = _base_color
-	mesh.material_override = _material
 	# "enemy" guruhi — keyin (3-bosqich) to'lqin tizimida dushmanlarni sanash uchun foydali.
 	add_to_group("enemy")
 	attack_timer.one_shot = true
 	attack_timer.wait_time = attack_cooldown
+	# glTF model ichidan AnimationPlayer va mesh'ni topamiz ("as" — xavfsiz cast).
+	_anim = model.find_child("AnimationPlayer", true, false) as AnimationPlayer
+	_mesh_inst = model.find_child("KronSoldierMesh", true, false) as MeshInstance3D
+	if _anim != null:
+		# idle va run takrorlanadigan (loop) bo'lsin.
+		for a in ["idle", "run"]:
+			if _anim.has_animation(a):
+				_anim.get_animation(a).loop_mode = Animation.LOOP_LINEAR
+		_anim.play("idle")
 	# MUHIM: NavigationServer3D xaritani keyingi fizika kadrida sinxronlaydi.
 	# Shuning uchun bir kadr kutamiz, keyin o'yinchini topamiz.
 	await get_tree().physics_frame
@@ -73,6 +78,8 @@ func _physics_process(delta: float) -> void:
 		State.DEAD:
 			velocity.x = 0.0
 			velocity.z = 0.0
+
+	_update_anim()
 
 	# DIQQAT: butun skriptda move_and_slide() FAQAT shu yerda — bir kadrda bir marta.
 	move_and_slide()
@@ -144,6 +151,9 @@ func _do_attack() -> void:
 ## Zarba: qisqa tayyorgarlikdan keyin o'yinchiga zarar yetkazadi.
 ## Alohida funksiya — await _do_attack'ni har kadr to'xtatib qo'ymasligi uchun.
 func _strike() -> void:
+	# Nayza zarbasi animatsiyasini boshlaymiz (bir martalik).
+	if _anim != null:
+		_anim.play("attack")
 	# create_timer(..., false): pauzaga bo'ysunadi — game over paytida zarba bermaydi.
 	await get_tree().create_timer(attack_windup, false).timeout
 	# await dan KEYIN holat o'zgargan bo'lishi mumkin (o'ldik / o'yinchi qochdi).
@@ -163,6 +173,21 @@ func _strike() -> void:
 func _stop_horizontal() -> void:
 	velocity.x = 0.0
 	velocity.z = 0.0
+
+
+## Holatga qarab animatsiya tanlaydi (idle <-> run). attack/die — bir martalik,
+## ular _strike()/_die() ichida qo'yiladi va bu yerda ustidan yozilmaydi.
+func _update_anim() -> void:
+	if _anim == null:
+		return
+	if _state == State.DEAD:
+		return                                # "die" _die() da qo'yiladi
+	if _anim.current_animation == "attack":
+		return                                # zarba animatsiyasi tugaguncha kutamiz
+	var moving: bool = Vector2(velocity.x, velocity.z).length() > 0.4
+	var want: String = "run" if moving else "idle"
+	if _anim.current_animation != want:
+		_anim.play(want)
 
 
 ## Player havolasini tekshiradi/yangilaydi. Topilsa true qaytaradi.
@@ -201,19 +226,32 @@ func take_damage(amount: float) -> void:
 
 
 func _flash() -> void:
-	# Zarba momentida oq rangga o'tamiz, keyin asl rangga silliq qaytamiz.
-	_material.albedo_color = Color.WHITE
-	var tween: Tween = create_tween()
-	tween.tween_property(_material, "albedo_color", _base_color, 0.15)
+	# Zarba momentida butun model oq rangga "yonadi", keyin asl ranglar tiklanadi.
+	if _mesh_inst == null:
+		return
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color.WHITE
+	m.emission_enabled = true
+	m.emission = Color(1, 1, 1)
+	_mesh_inst.material_override = m
+	# Qisqa vaqtdan keyin override'ni olib tashlaymiz (asl model ranglari qaytadi).
+	get_tree().create_timer(0.12).timeout.connect(_clear_flash)
+
+
+func _clear_flash() -> void:
+	if is_instance_valid(_mesh_inst):
+		_mesh_inst.material_override = null
 
 
 func _die() -> void:
 	_state = State.DEAD
+	if _anim != null:
+		_anim.play("die")          # orqaga yiqilish animatsiyasi
 	# Boshqalarga/o'qqa to'siq bo'lmasin: "enemy" qatlamidan chiqamiz va to'qnashuvni o'chiramiz.
 	set_collision_layer_value(3, false)
 	# set_deferred — fizika qadami ichida to'g'ridan-to'g'ri o'chirsak Godot xato beradi.
 	collision_shape.set_deferred("disabled", true)
 	Events.enemy_died.emit(self)   # HUD ochkoni +1 qiladi (mavjud signal)
-	# Qisqa kechikish (keyin "yiqilish" animatsiyasi shu yerga qo'shiladi), so'ng o'chadi.
-	await get_tree().create_timer(0.3, false).timeout
+	# Yiqilish animatsiyasi tugashi uchun biroz kutamiz, so'ng o'chadi.
+	await get_tree().create_timer(1.2, false).timeout
 	queue_free()
