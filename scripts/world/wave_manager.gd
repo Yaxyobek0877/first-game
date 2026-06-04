@@ -16,12 +16,13 @@ extends Node
 var _wave: int = 0
 var _spawning: bool = false   ## To'lqin almashish jarayonida (qayta-trigger bo'lmasin)
 
-## Spawn nuqtalari (Godot koordinatalari, polda). Arena ichi, to'siqlardan chetda,
-## o'yinchidan (z=8) uzoqda — shimol va flanglar.
+## Spawn nuqtalari (Godot koordinatalari, polda). Arena ichi (56x56), to'siqlardan
+## chetda, o'yinchidan (z=20) uzoqda — shimol va flanglar.
 var _spawn_points: Array[Vector3] = [
-	Vector3(-12, 0, -16), Vector3(0, 0, -17), Vector3(12, 0, -16),
-	Vector3(-16, 0, -8), Vector3(16, 0, -8),
-	Vector3(-4, 0, -16), Vector3(4, 0, -16),
+	Vector3(-16, 0, -24), Vector3(0, 0, -25), Vector3(16, 0, -24),
+	Vector3(-24, 0, -8), Vector3(24, 0, -8),
+	Vector3(-8, 0, -22), Vector3(8, 0, -22),
+	Vector3(-24, 0, 8), Vector3(24, 0, 8),
 ]
 
 

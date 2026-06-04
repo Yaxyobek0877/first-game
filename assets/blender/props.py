@@ -176,53 +176,59 @@ def barbed_wire_line(gx1, gz1, gx2, gz2):
 
 
 # ============================================================================
-# JOYLASHTIRISH (Godot koordinatalari; arena ichi ~ [-19,19], o'yinchi z=8 da)
-# Markaziy jang yo'lagi (x~0, z -5..8) ochiq qoldiriladi — gameplay uchun.
+# JOYLASHTIRISH (Godot koordinatalari; arena ichi ~ [-27,27], o'yinchi z=20 da)
+# Markaziy jang yo'lagi ochiq qoldiriladi — gameplay uchun.
 # Asosiy panoh — mavjud CSG qutilari (collision bilan); bular faqat BEZAK.
 # ============================================================================
 
 # --- Perimetr istehkomi: 4 devor ichida qum qop devorlari ---
-sandbag_wall(0, -18, 33, 0, rows=3)            # shimol (dushman) chizig'i
-sandbag_wall(0, 18, 33, 0, rows=3)             # janub (o'yinchi orqasi)
-sandbag_wall(-18, 0, 33, 90, rows=3)           # g'arb
-sandbag_wall(18, 0, 33, 90, rows=3)            # sharq
+sandbag_wall(0, -26, 48, 0, rows=3)            # shimol (dushman) chizig'i
+sandbag_wall(0, 26, 48, 0, rows=3)             # janub (o'yinchi orqasi)
+sandbag_wall(-26, 0, 48, 90, rows=3)           # g'arb
+sandbag_wall(26, 0, 48, 90, rows=3)            # sharq
 
 # --- No-man's-land tikanli sim (shimol, dushman oldida) ---
-barbed_wire_line(-15.5, -15.5, 15.5, -15.5)
-barbed_wire_line(-14, -13.5, 14, -13.5)
-barbed_wire_line(-15.5, 15.5, 15.5, 15.5)      # janub chegarasida ham bir qator
+barbed_wire_line(-23, -23, 23, -23)
+barbed_wire_line(-21, -20.5, 21, -20.5)
+barbed_wire_line(-23, 23, 23, 23)              # janub chegarasida ham bir qator
 
-# --- Qisqa oldingi panoh chiziqlari (markazdan chetda) ---
-sandbag_wall(-9, -6, 5.0, 20, rows=3)          # chap flang panoh
-sandbag_wall(9, -6, 5.0, -20, rows=3)          # o'ng flang panoh
+# --- Oldingi panoh chiziqlari (markazdan chetda) ---
+sandbag_wall(-13, -9, 6.0, 20, rows=3)         # chap flang panoh
+sandbag_wall(13, -9, 6.0, -20, rows=3)         # o'ng flang panoh
+sandbag_wall(0, -5, 7.0, 0, rows=2)            # markaziy past devor
 
 # --- Burchak klasterlari: qutilar + bochkalar ---
-for (cx, cz) in [(15, -15), (-15, -15), (15, 15), (-15, 15)]:
+for (cx, cz) in [(24, -24), (-24, -24), (24, 24), (-24, 24)]:
     crate_pile(cx, cz)
     barrel(cx + (-1.4 if cx > 0 else 1.4), cz)
 
 # --- Qo'shimcha qutilar/bochkalar (chet hududlarda) ---
-crate(12, -3, 0.7, 18)
-crate(-12, -2, 0.7, -14)
-crate(13, 6, 0.65, 8)
-barrel(-12.5, 7)
-barrel(11.5, -9)
+crate(18, -5, 0.7, 18)
+crate(-18, -4, 0.7, -14)
+crate(20, 9, 0.65, 8)
+crate(-20, 10, 0.7, -10)
+barrel(-19, 12)
+barrel(16, -13)
+barrel(7, 16)
+barrel(-8, 17)
 
 # --- Sochilgan taxtalar / xarobalar (chetlarda) ---
-box("Plank", (2.4, 0.18, 0.08), (13, -9, 0.05), WOOD, yaw=30)
-box("Plank", (1.9, 0.16, 0.08), (-13, -8, 0.05), WOOD, yaw=-50)
-box("Plank", (2.6, 0.2, 0.08), (-10, 12, 0.05), WOOD, yaw=70)
-box("Plank", (2.2, 0.18, 0.08), (8, 13, 0.05), WOOD, yaw=-35)
-post(-17, -17, 1.4)
-post(17, -16, 1.2)
-post(16, 17, 1.3)
+box("Plank", (2.4, 0.18, 0.08), (18, -13, 0.05), WOOD, yaw=30)
+box("Plank", (1.9, 0.16, 0.08), (-18, -12, 0.05), WOOD, yaw=-50)
+box("Plank", (2.6, 0.2, 0.08), (-14, 18, 0.05), WOOD, yaw=70)
+box("Plank", (2.2, 0.18, 0.08), (12, 18, 0.05), WOOD, yaw=-35)
+post(-25, -25, 1.4)
+post(25, -24, 1.2)
+post(24, 25, 1.3)
 
 # --- Snaryad chuqurlari (no-man's-land va maydon bo'ylab — jang izlari) ---
-crater(-3, -11, 1.8)
-crater(6, -13, 1.5)
-crater(-9, -3, 1.4)
-crater(10, -4, 1.6)
-crater(1, 4, 1.3)
+crater(-5, -16, 2.0)
+crater(9, -18, 1.6)
+crater(-13, -5, 1.5)
+crater(14, -6, 1.7)
+crater(2, 6, 1.4)
+crater(-9, 13, 1.6)
+crater(11, 11, 1.5)
 
 print("PROPS_BUILT:", len(objs))
 
