@@ -35,6 +35,9 @@ enum State { IDLE, CHASE, ATTACK, DEAD }
 @export var ranged_range: float = 16.0       ## Shu masofadan otadi (ko'rinish bo'lsa)
 @export var ranged_damage: float = 8.0       ## Har otishdagi zarar (melee'dan kamroq)
 
+# --- O'lim/jasad ---
+@export var corpse_lifetime: float = 25.0    ## Jasad yerda qancha turadi (s), so'ng o'chadi
+
 var _state: State = State.IDLE
 var _player: Node3D = null
 var health: float
@@ -290,6 +293,7 @@ func take_damage(amount: float) -> void:
 		return
 	health -= amount
 	_flash()
+	_blood_burst()
 	if health <= 0.0:
 		_die()
 
@@ -314,13 +318,57 @@ func _clear_flash() -> void:
 
 func _die() -> void:
 	_state = State.DEAD
+	# Jasad joyida qotadi (fizika o'chadi — yerga botmaydi); die anim alohida ishlaydi.
+	set_physics_process(false)
 	if _anim != null:
 		_anim.play("die")          # orqaga yiqilish animatsiyasi
+	# Tirik dushmanlar ro'yxatidan chiqamiz — to'lqin keyingisiga o'tsin (jasad qolsa ham).
+	remove_from_group("enemy")
 	# Boshqalarga/o'qqa to'siq bo'lmasin: "enemy" qatlamidan chiqamiz va to'qnashuvni o'chiramiz.
 	set_collision_layer_value(3, false)
 	# set_deferred — fizika qadami ichida to'g'ridan-to'g'ri o'chirsak Godot xato beradi.
 	collision_shape.set_deferred("disabled", true)
 	Events.enemy_died.emit(self)   # HUD ochkoni +1 qiladi (mavjud signal)
-	# Yiqilish animatsiyasi tugashi uchun biroz kutamiz, so'ng o'chadi.
-	await get_tree().create_timer(1.2, false).timeout
+	_blood_pool()
+	# Jasad yerda qoladi (corpse_lifetime), so'ng o'chadi (cheksiz to'planmasin).
+	await get_tree().create_timer(corpse_lifetime, false).timeout
 	queue_free()
+
+
+## Tekkanda qisqa qizil "qon" purkagichi (ko'krak balandligida).
+func _blood_burst() -> void:
+	var b := MeshInstance3D.new()
+	var s := SphereMesh.new()
+	s.radius = 0.12
+	s.height = 0.24
+	b.mesh = s
+	var mat := StandardMaterial3D.new()
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_color = Color(0.5, 0.0, 0.0, 0.9)
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	b.material_override = mat
+	get_tree().current_scene.add_child(b)
+	b.global_position = global_position + Vector3(0, 1.2, 0)
+	var tw := get_tree().create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(b, "scale", Vector3(2.0, 2.0, 2.0), 0.28)
+	tw.tween_property(mat, "albedo_color:a", 0.0, 0.28)
+	tw.chain().tween_callback(b.queue_free)
+
+
+## O'lganda yerga qon ko'lmagi (yassi qizil disk) — jasad bilan qoladi.
+func _blood_pool() -> void:
+	var p := MeshInstance3D.new()
+	var c := CylinderMesh.new()
+	c.top_radius = 0.7
+	c.bottom_radius = 0.7
+	c.height = 0.03
+	p.mesh = c
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.32, 0.0, 0.0)
+	mat.roughness = 1.0
+	p.material_override = mat
+	get_tree().current_scene.add_child(p)
+	p.global_position = global_position + Vector3(0, 0.02, 0)
+	# Jasad bilan birga (corpse_lifetime) o'chadi.
+	get_tree().create_timer(corpse_lifetime, false).timeout.connect(p.queue_free)
