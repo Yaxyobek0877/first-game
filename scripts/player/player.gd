@@ -19,6 +19,8 @@ extends CharacterBody3D
 @export var max_health: float = 100.0
 var health: float
 var _is_dead: bool = false       ## O'lim oqimi faqat bir marta ishlashi uchun (qayta o'lmaslik)
+var _step_player: AudioStreamPlayer   ## Qadam tovushi
+var _step_time: float = 0.0           ## Keyingi qadamgacha qolgan vaqt
 
 # --- Sahnadagi tugunlarga havola (@onready — sahna yuklangach to'ldiriladi) ---
 @onready var head: Node3D = $Head             ## Yuqoriga/pastga qarash shu tugunni aylantiradi
@@ -33,6 +35,10 @@ func _ready() -> void:
 	add_to_group("player")
 	# O'yin boshlanganda sichqonchani "qamab" qo'yamiz — ekrandan chiqib ketmaydi.
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	# Qadam tovushi pleyeri (WAV — protsedural SFX).
+	_step_player = AudioStreamPlayer.new()
+	_step_player.stream = load("res://assets/audio/footstep.wav")
+	add_child(_step_player)
 	# HUD boshlang'ich jonni ko'rsatishi uchun signal yuboramiz.
 	Events.player_health_changed.emit(health, max_health)
 
@@ -79,6 +85,24 @@ func _physics_process(delta: float) -> void:
 
 	# 4) Harakatni qo'llaymiz — Godot devorlar/yer bilan to'qnashuvni o'zi hal qiladi.
 	move_and_slide()
+
+	# 5) Qadam tovushi — yerda yurganda interval bilan.
+	_footsteps(delta)
+
+
+## Yerda harakatlanganda qadam tovushini interval bilan chaladi (yugurganda tezroq).
+func _footsteps(delta: float) -> void:
+	if _step_player == null or _step_player.stream == null:
+		return
+	var moving: bool = is_on_floor() and Vector2(velocity.x, velocity.z).length() > 1.0
+	if not moving:
+		_step_time = 0.0
+		return
+	_step_time -= delta
+	if _step_time <= 0.0:
+		_step_player.pitch_scale = randf_range(0.9, 1.1)
+		_step_player.play()
+		_step_time = 0.32 if Input.is_action_pressed("sprint") else 0.46
 
 
 ## Dushmanlar shu funksiyani chaqirib o'yinchiga zarar yetkazadi.

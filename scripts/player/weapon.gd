@@ -25,6 +25,7 @@ var _base_pos: Array[Vector3] = []     ## Har model'ning asl (base) joyi
 var _recoil: Vector3 = Vector3.ZERO    ## Otishda tepish (decay bilan nolga qaytadi)
 var _equip_t: float = 0.0              ## Qurol olish (pastdan ko'tarilish): 0 -> 1
 var _time: float = 0.0                 ## Yengil tebranish (bob) uchun
+var _shot_player: AudioStreamPlayer    ## Otish tovushi
 
 @onready var ray: RayCast3D = $RayCast3D     ## Nishonni aniqlaydigan nur
 @onready var muzzle: Marker3D = $Muzzle      ## Quvur uchi (effekt chiqadigan nuqta)
@@ -59,6 +60,11 @@ func _ready() -> void:
 	for i in _models.size():
 		if _models[i] != null:
 			_base_pos[i] = _models[i].position
+
+	# Otish tovushi pleyeri (WAV — protsedural SFX).
+	_shot_player = AudioStreamPlayer.new()
+	_shot_player.stream = load("res://assets/audio/shot.wav")
+	add_child(_shot_player)
 
 	# Boshlang'ich o'q-dori va qurol nomini HUD'ga yuboramiz.
 	# DIQQAT: call_deferred — HUD hali signalga ulanib ulgurishi uchun (kadr oxirida).
@@ -162,6 +168,27 @@ func _hide_flash() -> void:
 		_flash.visible = false
 
 
+## Otishda quvurdan tekkan nuqtagacha qisqa yorug' "iz" (tracer) chizadi (0.04s).
+func _spawn_tracer(from: Vector3, to: Vector3) -> void:
+	var dist: float = from.distance_to(to)
+	if dist < 0.1:
+		return
+	var tracer := MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = Vector3(0.02, 0.02, dist)
+	tracer.mesh = box
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.albedo_color = Color(1.0, 0.9, 0.55)
+	mat.emission_enabled = true
+	mat.emission = Color(1.0, 0.85, 0.4)
+	tracer.material_override = mat
+	get_tree().current_scene.add_child(tracer)
+	tracer.global_position = (from + to) * 0.5
+	tracer.look_at(to, Vector3.UP)   # -Z 'to' tomon; box uzunligi Z bo'ylab
+	get_tree().create_timer(0.04).timeout.connect(tracer.queue_free)
+
+
 func _shoot() -> void:
 	var w: Resource = _active()
 	_cooldown = w.fire_rate
@@ -173,17 +200,25 @@ func _shoot() -> void:
 	_recoil.z = minf(_recoil.z, 0.08)
 	_recoil.y = minf(_recoil.y, 0.03)
 	_muzzle_flash()
+	if _shot_player != null and _shot_player.stream != null:
+		_shot_player.pitch_scale = randf_range(0.92, 1.08)   # ozgina o'zgarish — bir xil bo'lmasin
+		_shot_player.play()
 
 	# Nurning uzunligini qurol masofasiga moslaymiz va shu kadrda yangilaymiz.
 	ray.target_position = Vector3(0.0, 0.0, -w.max_range)
 	ray.force_raycast_update()
+	var tracer_end: Vector3
 	if ray.is_colliding():
 		var target: Object = ray.get_collider()
 		var point: Vector3 = ray.get_collision_point()
+		tracer_end = point
 		# Agar tekkan narsa "take_damage" funksiyasiga ega bo'lsa — zarar beramiz.
 		if target != null and target.has_method("take_damage"):
 			target.take_damage(w.damage)
 		_spawn_impact(point)
+	else:
+		tracer_end = ray.to_global(ray.target_position)
+	_spawn_tracer(muzzle.global_position, tracer_end)
 
 
 func reload() -> void:
