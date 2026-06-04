@@ -25,15 +25,20 @@ Bu — foydalanuvchining **birinchi o'yini**. Maqsad: AI yordamida o'yin yaratis
 | **0. Asoslar** | Loyiha, papka tuzilishi, input xaritasi, `Events` autoload | ✅ Tugadi |
 | **1. Vertical Slice** | FPS yurish/qarash/sakrash, hitscan otish, nishonlar, HUD | ✅ Tugadi va tekshirildi |
 | **2. Jang tizimi** | AI dushman, qurol turlari, jon/zarar balansi | ✅ Tugadi va tekshirildi |
-| **3. Arena janglari** | To'lqin tizimi + spawn + ochko/rekord ✅ · ko'p arena/o'tish ⬜ | 🔄 Asosiy qism tayyor |
+| **3. Arena janglari** | To'lqin tizimi, spawn, ochko/rekord, 56×56 arena, jasad/qon, jon regen | 🔄 Boy (ko'p arena/o'tish ⬜) |
 | 4. Kampaniya/syujet | `docs/SENARIY.md` ni amalga oshirish — avval PROLOG | ⬜ |
-| 5. Sayqal | Tovush, effektlar, menyu, saqlash, optimizatsiya | ⬜ |
+| 5. Sayqal | Bosh/pauza menyu ✅ · SFX (placeholder) ✅ · tracer/muzzle/qon ✅ · optimizatsiya/saqlash ⬜ | 🔄 Qisman |
 | 6. Ko'p o'yinchilik | 5v5 janglar + xona (room) ochish — ilg'or/uzoq muddatli | ⬜ |
 
-**1- va 2-bosqich `--headless` rejimida toza ishladi** (xato/ogohlantirish yo'q). 2-bosqich
-`--fixed-fps 60 --quit-after 1200` (20 s determenistik simulyatsiya) bilan **uchidan-uchiga** ham
-tekshirildi: navmesh bake bo'ladi (59 ko'pburchak), dushman o'yinchini topib ta'qib qiladi, hujum
-qiladi va o'ldiradi → "O'yin tugadi" pauzasi ishlaydi.
+**Joriy o'yin (arena wave shooter):** bosh menyu «QAYTISH» → o'yin → Esc pauza → o'lim/qayta boshlash.
+To'lqin-to'lqin dushmanlar (melee + ranged Kron askarlari), 2 qurol (**Avtomat** auto + **Snayper**
+durbin/zoom), reload animatsiyasi, jon regen + zarar qizil chaqnashi + hit-marker, jasadlar yerda
+qoladi + qon, tracer/muzzle flash, ochko/rekord, 56×56 arena (8 pana, xandaq bezagi).
+
+**Tekshiruv eslatmasi:** bosh sahna endi `main_menu.tscn` — gameplay'ni alohida test qiling:
+`<exe> --headless --path D:\first_game res://scenes/main.tscn --fixed-fps 60 --quit-after 1500`
+→ toza bo'lsa stderr bo'sh (eslatma: 30s+ run'da "Pages in use at exit" — bu majburiy yopishda
+tirik jasadlardan, ZARARSIZ). Navmesh ~120 ko'pburchak; dushman shimoldan o'yinchini (z=20) o'ldiradi.
 
 ---
 
@@ -103,7 +108,7 @@ first_game/
 
 ## 🎮 Boshqaruv
 
-`WASD` yurish · sichqoncha qarash · chap tugma otish · `Shift` yugurish · `Space` sakrash · `R` qayta o'qlash · `1`/`2` qurol almashtirish · `Esc` sichqonchani bo'shatish.
+`WASD` yurish · sichqoncha qarash · chap tugma otish · **o'ng tugma — aim/zoom** · `Shift` yugurish · `Space` sakrash · `R` qayta o'qlash · `1`/`2` qurol (Avtomat/Snayper) · `Esc` pauza menyu.
 
 ---
 
