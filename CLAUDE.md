@@ -82,7 +82,8 @@ first_game/
 ├── icon.svg
 ├── assets/
 │   ├── blender/{soldier,props,weapons}.py  # Blender generatorlar (→ .glb)
-│   └── models/*.glb       # kron_soldier · trench_dressing · avtomat · miltiq
+│   ├── audio/{gen_sounds.py, shot.wav, footstep.wav}  # protsedural SFX
+│   └── models/*.glb       # kron/aros_soldier · trench_dressing · avtomat · miltiq
 ├── resources/
 │   └── weapons/{avtomat=pistol.tres, rifle.tres}  # WeaponData sozlamalari
 ├── scenes/
@@ -135,7 +136,7 @@ qayta yaratiladigan (reproducible), izohlar o'zbekcha. **Uslub:** stilize low-po
   (`idle`/`run`/`attack`/`die`). Har animatsiya self-contained (barcha suyaklarni belgilaydi).
 - **Integratsiya:** `enemy.tscn` modelni instance qiladi; `enemy.gd` AnimationPlayer'ni FSM bilan
   boshqaradi (`find_child` orqali topadi). Collision kapsula alohida qoladi (fizika).
-- **Generatorlar:** `soldier.py` (Kron askari, animatsiyali; dubulg'a bosh ustida) · `props.py`
+- **Generatorlar:** `soldier.py` (Kron + Aros askarlari, faction-parametrli, animatsiyali) · `props.py`
   (xandaq bezagi — `trench_dressing.glb`, arenaga bir marta instance) · `weapons.py` (Avtomat/Miltiq
   viewmodel + qo'l/yeng; `player.tscn` Weapon ostida; `weapon.gd` faol qurol modelini ko'rsatadi).
 - **Viewmodel animatsiyasi (`weapon.gd`):** otishda recoil (tepish) + muzzle flash (Muzzle ostidagi
