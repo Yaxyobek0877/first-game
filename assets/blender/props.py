@@ -81,6 +81,7 @@ WOOD = make_material("Wood", (0.34, 0.22, 0.12))
 WOOD_D = make_material("WoodDark", (0.22, 0.14, 0.08))
 RUST = make_material("Rust", (0.36, 0.22, 0.13), rough=0.7, metal=0.4)
 WIRE = make_material("Wire", (0.13, 0.13, 0.15), rough=0.5, metal=0.6)
+SCORCH = make_material("Scorch", (0.09, 0.07, 0.05), rough=1.0)  # kuygan yer (krater)
 
 
 # --- Qurilish funksiyalari ---
@@ -131,6 +132,18 @@ def barrel(gx, gz):
 
 def post(gx, gz, h=1.1, yaw=0.0, tilt=0.0):
     box("Post", (0.08, 0.08, h), (gx, gz, h * 0.5), WOOD_D, yaw=yaw)
+
+
+def crater(gx, gz, r=1.6):
+    """Snaryad chuquri — yerda kuygan yassi disk + chetiga sochilgan tuproq bo'laklari."""
+    cyl("CraterFloor", r, 0.05, (gx, gz, 0.02), SCORCH, verts=12)
+    # chetidagi ko'tarilgan tuproq (bir nechta kichik bo'lak)
+    import math
+    for i in range(6):
+        a = i * (math.pi * 2 / 6)
+        ex = gx + math.cos(a) * (r * 0.95)
+        ez = gz + math.sin(a) * (r * 0.95)
+        box("CraterRim", (0.4, 0.4, 0.14), (ex, ez, 0.07), SAND2, yaw=math.degrees(a))
 
 
 def barbed_wire_line(gx1, gz1, gx2, gz2):
@@ -203,6 +216,13 @@ box("Plank", (2.2, 0.18, 0.08), (8, 13, 0.05), WOOD, yaw=-35)
 post(-17, -17, 1.4)
 post(17, -16, 1.2)
 post(16, 17, 1.3)
+
+# --- Snaryad chuqurlari (no-man's-land va maydon bo'ylab — jang izlari) ---
+crater(-3, -11, 1.8)
+crater(6, -13, 1.5)
+crater(-9, -3, 1.4)
+crater(10, -4, 1.6)
+crater(1, 4, 1.3)
 
 print("PROPS_BUILT:", len(objs))
 

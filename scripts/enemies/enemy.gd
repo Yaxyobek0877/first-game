@@ -112,8 +112,14 @@ func _do_chase() -> void:
 		_state = State.IDLE
 		return
 	# Yetib oldik (melee) yoki otish masofasiga kirdik (ranged) — hujumga o'tamiz.
+	# Ranged uchun: KO'RINISH (LOS) bo'lsagina ATTACK. Aks holda pana ortida qotib
+	# qolmaslik uchun yaqinlashishni (navigatsiyani) davom ettiramiz — yangi joydan
+	# otish imkonini topguncha.
 	var stop_dist: float = ranged_range if is_ranged else attack_range
-	if dist <= stop_dist:
+	var ready: bool = dist <= stop_dist
+	if is_ranged and ready and not _has_line_of_sight():
+		ready = false
+	if ready:
 		_stop_horizontal()
 		_state = State.ATTACK
 		return
