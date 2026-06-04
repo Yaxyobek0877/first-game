@@ -9,8 +9,14 @@ extends CanvasLayer
 @onready var weapon_label: Label = $WeaponLabel
 @onready var wave_label: Label = $WaveLabel
 @onready var record_label: Label = $RecordLabel
-@onready var crosshair: Label = $Crosshair
+@onready var crosshair: TextureRect = $Crosshair
+@onready var hitmarker: TextureRect = $Hitmarker
+@onready var weapon_icon: TextureRect = $WeaponIcon
 @onready var damage_overlay: ColorRect = $DamageOverlay
+
+## Qurol ikonkalari (qurol almashganda almashtiriladi).
+const TEX_AVTOMAT := preload("res://assets/ui/hud/icon_avtomat.png")
+const TEX_SNIPER := preload("res://assets/ui/hud/icon_sniper.png")
 
 const RECORD_PATH := "user://record.save"
 var score: int = 0
@@ -26,6 +32,7 @@ func _ready() -> void:
 	Events.weapon_changed.connect(_on_weapon_changed)
 	Events.wave_started.connect(_on_wave_started)
 	Events.target_hit.connect(_on_target_hit)
+	Events.scoped.connect(_on_scoped)
 	_load_record()
 	_update_score()
 	_update_record()
@@ -52,6 +59,11 @@ func _flash_damage() -> void:
 
 ## O'q nishonga tekkanda crosshair qisqa "hit-marker" (qizarib, kattalashadi).
 func _on_target_hit() -> void:
+	# Alohida hit-marker belgisi qisqa chaqnaydi (oq → shaffof).
+	hitmarker.modulate = Color(1, 1, 1, 1)
+	var hm := create_tween()
+	hm.tween_property(hitmarker, "modulate:a", 0.0, 0.25)
+	# Crosshair ham qizarib kattalashadi.
 	crosshair.modulate = Color(1.0, 0.4, 0.3)
 	crosshair.scale = Vector2(1.5, 1.5)
 	var tw := create_tween()
@@ -71,10 +83,18 @@ func _on_enemy_died(_enemy: Node) -> void:
 
 func _on_weapon_changed(weapon_name: String) -> void:
 	weapon_label.text = "Qurol: %s" % weapon_name
+	# Qurol turiga mos ikonka (nomida "nayper" bo'lsa — snayper, aks holda avtomat).
+	weapon_icon.texture = TEX_SNIPER if weapon_name.to_lower().contains("nayper") else TEX_AVTOMAT
 
 
 func _on_wave_started(wave: int) -> void:
 	wave_label.text = "To'lqin: %d" % wave
+
+
+## Snayper durbiniga qaraganda (scoped) — oddiy crosshair yashiriladi
+## (durbin overlay o'zining nishon chiziqlarini ko'rsatadi).
+func _on_scoped(active: bool) -> void:
+	crosshair.visible = not active
 
 
 func _update_score() -> void:

@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/world/arena.tscn" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2"]
@@ -7,6 +7,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/game_over.tscn" id="6"]
 [ext_resource type="Script" path="res://scripts/world/wave_manager.gd" id="7"]
 [ext_resource type="PackedScene" path="res://scenes/ui/pause_menu.tscn" id="8"]
+[ext_resource type="PackedScene" path="res://scenes/ui/scope_overlay.tscn" id="9"]
 
 [node name="Main" type="Node3D"]
 
@@ -20,6 +21,8 @@ script = ExtResource("7")
 enemy_scene = ExtResource("5")
 
 [node name="HUD" parent="." instance=ExtResource("4")]
+
+[node name="ScopeOverlay" parent="." instance=ExtResource("9")]
 
 [node name="GameOver" parent="." instance=ExtResource("6")]
 

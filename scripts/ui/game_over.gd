@@ -29,6 +29,10 @@ func _on_player_died() -> void:
 	get_tree().paused = true
 	# Sichqonchani bo'shatamiz — tugmani bosa olish uchun.
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	# Aim/zoom qotib qolmasligi uchun kamera FOV'ini tiklaymiz.
+	var cam := get_viewport().get_camera_3d()
+	if cam != null:
+		cam.fov = 75.0
 	# Klaviatura/gamepad bilan ham bosish mumkin bo'lsin.
 	restart_button.grab_focus()
 

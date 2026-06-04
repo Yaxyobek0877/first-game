@@ -29,3 +29,6 @@ signal wave_started(wave: int)
 
 ## O'q nishonga (take_damage'li narsaga) tekkanda. HUD crosshair hit-marker ko'rsatadi.
 signal target_hit()
+
+## Snayperni aim qilganda (durbin). Scope overlay ko'rsatiladi, HUD crosshair yashiriladi.
+signal scoped(active: bool)

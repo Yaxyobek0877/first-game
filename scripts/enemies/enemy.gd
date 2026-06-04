@@ -36,7 +36,8 @@ enum State { IDLE, CHASE, ATTACK, DEAD }
 @export var ranged_damage: float = 8.0       ## Har otishdagi zarar (melee'dan kamroq)
 
 # --- O'lim/jasad ---
-@export var corpse_lifetime: float = 25.0    ## Jasad yerda qancha turadi (s), so'ng o'chadi
+@export var corpse_lifetime: float = 12.0    ## Jasad yerda qancha turadi (s), so'ng o'chadi
+                                              ## (juda ko'p jasad to'planib FPS tushmasligi uchun)
 
 var _state: State = State.IDLE
 var _player: Node3D = null
@@ -212,25 +213,26 @@ func _ranged_strike() -> void:
 		_player.take_damage(ranged_damage)
 
 
-## O'q izi (tracer) — ikki nuqta orasida qisqa yorug' chiziq (0.05s).
+## O'q izi (tracer) — ikki nuqta orasida qisqa yorug' chiziq.
+## Yo'g'onroq + biroz uzoqroq turadi (0.09s) — tezkor jangda ko'rinib qolsin.
 func _spawn_tracer(from: Vector3, to: Vector3) -> void:
 	var dist: float = from.distance_to(to)
 	if dist < 0.2:
 		return
 	var t := MeshInstance3D.new()
 	var bm := BoxMesh.new()
-	bm.size = Vector3(0.03, 0.03, dist)
+	bm.size = Vector3(0.06, 0.06, dist)
 	t.mesh = bm
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.albedo_color = Color(1.0, 0.8, 0.4)
+	mat.albedo_color = Color(1.0, 0.85, 0.45)
 	mat.emission_enabled = true
 	mat.emission = Color(1.0, 0.7, 0.3)
 	t.material_override = mat
 	get_tree().current_scene.add_child(t)
 	t.global_position = (from + to) * 0.5
 	t.look_at(to, Vector3.UP)
-	get_tree().create_timer(0.05).timeout.connect(t.queue_free)
+	get_tree().create_timer(0.09).timeout.connect(t.queue_free)
 
 
 ## Tekkan joyda kichik uchqun (0.1s).
@@ -267,8 +269,8 @@ func _has_line_of_sight() -> bool:
 func _enemy_muzzle_flash() -> void:
 	var flash := MeshInstance3D.new()
 	var sphere := SphereMesh.new()
-	sphere.radius = 0.12
-	sphere.height = 0.24
+	sphere.radius = 0.16
+	sphere.height = 0.32
 	flash.mesh = sphere
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -279,7 +281,7 @@ func _enemy_muzzle_flash() -> void:
 	get_tree().current_scene.add_child(flash)
 	# Quvur uchi taxminan: oldinga (-Z, o'yinchi tomon) va ko'krak balandligida.
 	flash.global_position = global_position - global_transform.basis.z * 0.7 + Vector3(0, 1.0, 0)
-	get_tree().create_timer(0.05).timeout.connect(flash.queue_free)
+	get_tree().create_timer(0.07).timeout.connect(flash.queue_free)
 
 
 # --- Yordamchi funksiyalar ---
@@ -360,10 +362,8 @@ func _clear_flash() -> void:
 
 func _die() -> void:
 	_state = State.DEAD
-	# Jasad joyida qotadi (fizika o'chadi — yerga botmaydi); die anim alohida ishlaydi.
+	# Jasad joyida qotadi (fizika o'chadi — yerga botmaydi).
 	set_physics_process(false)
-	if _anim != null:
-		_anim.play("die")          # orqaga yiqilish animatsiyasi
 	# Tirik dushmanlar ro'yxatidan chiqamiz — to'lqin keyingisiga o'tsin (jasad qolsa ham).
 	remove_from_group("enemy")
 	# Boshqalarga/o'qqa to'siq bo'lmasin: "enemy" qatlamidan chiqamiz va to'qnashuvni o'chiramiz.
@@ -372,6 +372,14 @@ func _die() -> void:
 	collision_shape.set_deferred("disabled", true)
 	Events.enemy_died.emit(self)   # HUD ochkoni +1 qiladi (mavjud signal)
 	_blood_pool()
+	# Jasad TABIIY yerda yotsin: skeletni neytral qilib, butun modelni gorizontal
+	# ag'daramiz (orqaga yiqilib, yuz tepaga) — g'alati ko'tarilgan poza emas.
+	if _anim != null:
+		_anim.play("idle")
+	var tw: Tween = create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(model, "rotation_degrees:x", 90.0, 0.4)
+	tw.tween_property(model, "position:y", 0.13, 0.4)
 	# Jasad yerda qoladi (corpse_lifetime), so'ng o'chadi (cheksiz to'planmasin).
 	await get_tree().create_timer(corpse_lifetime, false).timeout
 	queue_free()

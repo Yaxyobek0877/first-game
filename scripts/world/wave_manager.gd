@@ -52,7 +52,9 @@ func _start_wave() -> void:
 	var count: int = base_count + _wave   # to'lqin sayin ko'proq dushman
 	for i in count:
 		var e: Node3D = enemy_scene.instantiate()
-		var sp: Vector3 = _spawn_points[(i * 3 + _wave) % _spawn_points.size()]
+		# stride 1 (i) + har to'lqinda boshlanish nuqtasini surish — barcha 9 nuqta ishlatiladi.
+		# (oldingi i*3 formula gcd(3,9)=3 sabab faqat 3 nuqtaga tushardi -> ustma-ust).
+		var sp: Vector3 = _spawn_points[(i + _wave * 2) % _spawn_points.size()]
 		# Kichik tasodifiy siljish — yuqori to'lqinlarda (6+) ikki dushman bir nuqtaga
 		# tushib ustma-ust qolmasligi uchun (navmesh ichida qoladi).
 		sp += Vector3(randf_range(-1.0, 1.0), 0.0, randf_range(-1.0, 1.0))

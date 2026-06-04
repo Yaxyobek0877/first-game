@@ -43,7 +43,9 @@ func _ready() -> void:
 	_step_player.stream = load("res://assets/audio/footstep.wav")
 	add_child(_step_player)
 	# HUD boshlang'ich jonni ko'rsatishi uchun signal yuboramiz.
-	Events.player_health_changed.emit(health, max_health)
+	# call_deferred — HUD signalga ulanib ulgurishi uchun (aks holda birinchi zarbada
+	# qizil chaqnash ishlamaydi, chunki HUD _prev_health -1 da qoladi).
+	Events.player_health_changed.emit.call_deferred(health, max_health)
 
 
 func _unhandled_input(event: InputEvent) -> void:

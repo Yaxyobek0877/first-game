@@ -37,8 +37,10 @@ var _shot_player: AudioStreamPlayer    ## Otish tovushi
 @onready var _camera: Camera3D = get_parent() as Camera3D
 var _default_fov: float = 75.0
 var _aim_t: float = 0.0     ## Aim (ADS) o'tishi: 0 = beldan, 1 = markazga olingan
+var _scoped: bool = false   ## Snayper durbin (scope) overlay faolmi
 var _reloading: bool = false  ## Qayta o'qlash jarayonidami (otib bo'lmaydi)
 var _reload_t: float = 0.0    ## Reload animatsiyasi progressi 0->1 (qurol pasayadi)
+var _reload_gen: int = 0      ## Reload "avlodi" — eskirgan coroutine'larni bekor qiladi (race oldini olish)
 
 
 func _ready() -> void:
@@ -134,6 +136,7 @@ func _switch_to(index: int) -> void:
 	_equip_t = 0.0   # yangi qurol pastdan "olinadi" (equip animatsiyasi)
 	_reloading = false   # qurol almashsa reload bekor bo'ladi
 	_reload_t = 0.0
+	_reload_gen += 1     # eskirgan reload coroutine'ini bekor qilamiz
 	# Cooldown'ni SAQLAB qolamiz (nolga tushirmaymiz) — aks holda `1`/`2` ni tez-tez
 	# bosib fire_rate cheklovini chetlab o'tib, juda tez otish mumkin bo'lardi (exploit).
 	_apply_active_weapon()
@@ -159,6 +162,11 @@ func _update_zoom(delta: float) -> void:
 	_camera.fov = lerpf(_camera.fov, target_fov, clampf(delta * 14.0, 0.0, 1.0))
 	# ADS o'tishi (qurol markazga olinadi) — _update_viewmodel ishlatadi.
 	_aim_t = move_toward(_aim_t, 1.0 if aiming else 0.0, delta * 8.0)
+	# Durbin (scope) overlay — faqat durbinli qurolni aim qilganda.
+	var want_scope: bool = aiming and w.is_scope
+	if want_scope != _scoped:
+		_scoped = want_scope
+		Events.scoped.emit(_scoped)
 
 
 ## Faqat faol qurol modelini ko'rsatadi (qolganini yashiradi).
@@ -187,6 +195,8 @@ func _update_viewmodel() -> void:
 	if _reloading:
 		var d: float = sin(_reload_t * PI)
 		reload_dip = Vector3(0.04, -0.20 * d, 0.0)
+	# Durbin orqali qaraganda qurol modeli yashiriladi.
+	m.visible = not _scoped
 	m.position = _base_pos[_current_index] + _recoil + bob + equip + aim + reload_dip
 
 
@@ -266,18 +276,23 @@ func _start_reload() -> void:
 		return   # magazin to'la — kerak emas
 	_reloading = true
 	_reload_t = 0.0
-	_reload(w)
+	_reload_gen += 1
+	_reload(w, _current_index, _reload_gen)
 
 
 ## Reload jarayoni: o'rtada (qurol eng pastda) magazin almashadi.
-func _reload(w: Resource) -> void:
+## slot/gen — boshlanish paytidagi qurol va "avlod"; almashsa/yangi reload bo'lsa bekor.
+func _reload(w: Resource, slot: int, gen: int) -> void:
 	var half: float = w.reload_time * 0.5
 	await get_tree().create_timer(half, false).timeout
-	if not _reloading:           # almashtirilgan/bekor qilingan bo'lishi mumkin
+	if gen != _reload_gen:       # eskirgan (almashtirildi/yangi reload) — hech narsa qilmaymiz
 		return
-	_ammo_counts[_current_index] = w.max_ammo
-	Events.ammo_changed.emit(_ammo_counts[_current_index], w.max_ammo)
+	_ammo_counts[slot] = w.max_ammo
+	if slot == _current_index:
+		Events.ammo_changed.emit(_ammo_counts[slot], w.max_ammo)
 	await get_tree().create_timer(half, false).timeout
+	if gen != _reload_gen:
+		return
 	_reloading = false
 
 

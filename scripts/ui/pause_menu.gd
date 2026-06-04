@@ -41,6 +41,10 @@ func _pause() -> void:
 	visible = true
 	get_tree().paused = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	# Aim/zoom qotib qolmasligi uchun kamera FOV'ini tiklaymiz.
+	var cam := get_viewport().get_camera_3d()
+	if cam != null:
+		cam.fov = 75.0
 	resume_button.grab_focus()
 
 

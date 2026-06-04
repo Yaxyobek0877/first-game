@@ -19,3 +19,4 @@ class_name WeaponData
 @export var zoom_fov: float = 0.0             ## O'ng tugma (aim) bosilganda kamera FOV (0 = zoom yo'q).
                                               ## Snayper uchun kichik (kuchli zoom), avtomat uchun o'rta.
 @export var reload_time: float = 1.4          ## Qayta o'qlash davomiyligi (s) — animatsiya bilan.
+@export var is_scope: bool = false            ## true = aim qilganda durbin (scope) overlay ko'rsatiladi (snayper).

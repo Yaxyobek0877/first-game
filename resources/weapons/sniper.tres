@@ -13,3 +13,4 @@ spread = 0.0
 max_range = 1500.0
 zoom_fov = 22.0
 reload_time = 1.9
+is_scope = true

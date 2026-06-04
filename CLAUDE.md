@@ -49,7 +49,7 @@ tirik jasadlardan, ZARARSIZ). Navmesh ~120 ko'pburchak; dushman shimoldan o'yinc
 - [x] Dushman hujum qiladi (yaqin masofa / melee — nayza uslubi) → o'yinchi jon yo'qotadi.
 - [x] O'yinchi o'lganda: "O'yin tugadi" ekrani + qayta boshlash (pauza-bilan ishlovchi UI).
 - [x] `target_dummy` saqlandi (mashq nishoni) + yonida tirik dushman qo'shildi.
-- [x] 2 qurol turi: **Avtomat** (tez/zaif, auto) va **Miltiq** (sekin/kuchli, bitta-bitta), `1`/`2` bilan almashtirish, har biriga alohida o'q-dori.
+- [x] 2 qurol turi: **Avtomat** (tez/zaif, auto) va **Snayper** (sekin/kuchli, bitta-bitta, durbin/scope), `1`/`2` bilan almashtirish, har biriga alohida o'q-dori.
 
 > Eslatma: navmesh CSG'dan emas, ko'rinmas yordamchi collision shape'lardan (`nav_source` guruhi,
 > 8-qatlam) `arena.gd` ichida runtime'da bake qilinadi. Senariyga mos: melee dushman ≈ nayzali
@@ -88,9 +88,9 @@ first_game/
 ├── assets/
 │   ├── blender/{soldier,props,weapons}.py  # Blender generatorlar (→ .glb)
 │   ├── audio/{gen_sounds.py, shot.wav, footstep.wav}  # protsedural SFX
-│   └── models/*.glb       # kron/aros_soldier · trench_dressing · avtomat · miltiq
+│   └── models/*.glb       # kron/aros_soldier · trench_dressing · avtomat · sniper
 ├── resources/
-│   └── weapons/{avtomat=pistol.tres, rifle.tres}  # WeaponData sozlamalari
+│   └── weapons/{avtomat=pistol.tres, snayper=sniper.tres}  # WeaponData sozlamalari
 ├── scenes/
 │   ├── main.tscn          # Bosh sahna: arena + player + 3 nishon + Enemy + HUD + GameOver
 │   ├── player/player.tscn # CharacterBody3D > Head > Camera3D > Weapon(RayCast3D, GunMesh, Muzzle)

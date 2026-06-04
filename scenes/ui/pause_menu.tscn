@@ -1,9 +1,21 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/pause_menu.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/ui/menu/pause_background.png" id="2"]
 
 [node name="PauseMenu" type="CanvasLayer"]
 script = ExtResource("1")
+
+[node name="BackgroundImage" type="TextureRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2")
+expand_mode = 1
+stretch_mode = 6
 
 [node name="Panel" type="ColorRect" parent="."]
 anchors_preset = 15
@@ -12,7 +24,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0, 0, 0, 0.55)
+color = Color(0, 0, 0, 0.5)
 
 [node name="CenterContainer" type="CenterContainer" parent="Panel"]
 anchors_preset = 15
