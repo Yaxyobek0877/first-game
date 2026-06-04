@@ -26,6 +26,12 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, -9)
 [node name="Enemy" parent="." instance=ExtResource("5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -3)
 
+[node name="EnemyRanged" parent="." instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, -13)
+is_ranged = true
+ranged_damage = 8.0
+move_speed = 2.8
+
 [node name="HUD" parent="." instance=ExtResource("4")]
 
 [node name="GameOver" parent="." instance=ExtResource("6")]

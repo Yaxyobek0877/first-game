@@ -30,6 +30,11 @@ enum State { IDLE, CHASE, ATTACK, DEAD }
 @export var attack_cooldown: float = 1.2     ## Zarbalar orasidagi vaqt (s)
 @export var attack_windup: float = 0.25      ## Zarba "tayyorgarligi" — o'yinchi reaksiya qilsin
 
+# --- Masofadan otish (ranged) — Kron miltiqchi uchun ---
+@export var is_ranged: bool = false          ## true = yaqin jang emas, masofadan otadi
+@export var ranged_range: float = 16.0       ## Shu masofadan otadi (ko'rinish bo'lsa)
+@export var ranged_damage: float = 8.0       ## Har otishdagi zarar (melee'dan kamroq)
+
 var _state: State = State.IDLE
 var _player: Node3D = null
 var health: float
@@ -106,8 +111,9 @@ func _do_chase() -> void:
 		_stop_horizontal()
 		_state = State.IDLE
 		return
-	# Yetib oldik — hujumga o'tamiz.
-	if dist <= attack_range:
+	# Yetib oldik (melee) yoki otish masofasiga kirdik (ranged) — hujumga o'tamiz.
+	var stop_dist: float = ranged_range if is_ranged else attack_range
+	if dist <= stop_dist:
 		_stop_horizontal()
 		_state = State.ATTACK
 		return
@@ -137,15 +143,24 @@ func _do_attack() -> void:
 		return
 	_face_player()
 
-	# O'yinchi qochib qolsa — yana ta'qibga (biroz "yopishqoqlik" bilan).
-	if _distance_to_player() > attack_range * 1.3:
+	var trigger: float = ranged_range if is_ranged else attack_range
+	# O'yinchi uzoqlashdi — yana ta'qibga (biroz "yopishqoqlik" bilan).
+	if _distance_to_player() > trigger * 1.3:
 		_state = State.CHASE
 		return
 
-	# Taymer bo'sh bo'lsa — yangi zarba boshlaymiz. Taymer cooldown'ni ushlab turadi.
+	# Ranged: o'yinchi ko'rinmasa (pana ortida) — qayta joylashish uchun ta'qibga qaytamiz.
+	if is_ranged and not _has_line_of_sight():
+		_state = State.CHASE
+		return
+
+	# Taymer bo'sh bo'lsa — yangi hujum. Taymer cooldown'ni ushlab turadi.
 	if attack_timer.is_stopped():
 		attack_timer.start()
-		_strike()
+		if is_ranged:
+			_ranged_strike()
+		else:
+			_strike()
 
 
 ## Zarba: qisqa tayyorgarlikdan keyin o'yinchiga zarar yetkazadi.
@@ -166,6 +181,54 @@ func _strike() -> void:
 		return
 	if _player.has_method("take_damage"):
 		_player.take_damage(attack_damage)
+
+
+## Masofadan otish: tayyorgarlikdan keyin, ko'rinish bo'lsa, hitscan zarar beradi.
+## Taymer process_in_physics=true — await fizika kadrida tugaydi (raycast xavfsiz).
+func _ranged_strike() -> void:
+	if _anim != null:
+		_anim.play("attack")   # qisqa otish harakati
+	await get_tree().create_timer(attack_windup, false, true).timeout
+	if _state != State.ATTACK or not is_instance_valid(_player):
+		return
+	if not _has_line_of_sight():
+		return                 # pana ortida — o'q tegmaydi
+	_enemy_muzzle_flash()
+	if _player.has_method("take_damage"):
+		_player.take_damage(ranged_damage)
+
+
+## Dushman ko'zidan o'yinchiga to'g'ri ko'rinish bormi? (devor/pana to'smaydimi)
+func _has_line_of_sight() -> bool:
+	if not is_instance_valid(_player):
+		return false
+	var from: Vector3 = global_position + Vector3(0, 1.4, 0)
+	var to: Vector3 = _player.global_position + Vector3(0, 1.2, 0)
+	var space := get_world_3d().direct_space_state
+	var q := PhysicsRayQueryParameters3D.create(from, to)
+	q.collision_mask = 1 | 2   # world + player
+	q.exclude = [get_rid()]
+	var hit := space.intersect_ray(q)
+	return not hit.is_empty() and hit.collider == _player
+
+
+## Dushman quroli uchida qisqa alanga (otganda) — dunyoga qo'shamiz, 0.05s.
+func _enemy_muzzle_flash() -> void:
+	var flash := MeshInstance3D.new()
+	var sphere := SphereMesh.new()
+	sphere.radius = 0.12
+	sphere.height = 0.24
+	flash.mesh = sphere
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.albedo_color = Color(1.0, 0.85, 0.4)
+	mat.emission_enabled = true
+	mat.emission = Color(1.0, 0.8, 0.3)
+	flash.material_override = mat
+	get_tree().current_scene.add_child(flash)
+	# Quvur uchi taxminan: oldinga (-Z, o'yinchi tomon) va ko'krak balandligida.
+	flash.global_position = global_position - global_transform.basis.z * 0.7 + Vector3(0, 1.0, 0)
+	get_tree().create_timer(0.05).timeout.connect(flash.queue_free)
 
 
 # --- Yordamchi funksiyalar ---
