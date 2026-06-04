@@ -101,6 +101,13 @@ C:\Users\hcsah\AppData\Local\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_M
 
 ---
 
+## 🔗 Repozitoriya
+
+- GitHub (public): https://github.com/Yaxyobek0877/first-game
+- Har bosqich yoki muhim o'zgartirishdan keyin commit qiling va `git push` qiling.
+
+---
+
 ## 🧭 Yangi sessiyada qanday davom ettirish
 
 1. Shu `CLAUDE.md` va xotira indeksini o'qing.
