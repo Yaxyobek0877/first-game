@@ -130,9 +130,10 @@ parts.append(box("Hand.R", (0.10, 0.12, 0.12), ( 0.31, 0.04, 0.88), SKIN))
 parts.append(box("Neck", (0.12, 0.12, 0.10), (0.0, 0.0, 1.58), SKIN))
 parts.append(box("Head", (0.21, 0.22, 0.23), (0.0, 0.0, 1.72), SKIN))
 
-# Dubulg'a (gumbaz + boshga moslangan ixcham soyabon — Stahlhelm uslubi)
-parts.append(dome("HelmetDome", (0.27, 0.29, 0.24), (0.0, 0.0, 1.80), HELMET))
-parts.append(box("HelmetBrim", (0.28, 0.30, 0.022), (0.0, -0.01, 1.745), HELMET))
+# Dubulg'a — bosh USTIGA o'tiradi (gumbaz bosh tojini qoplaydi, yuz pastda ko'rinadi).
+# Stahlhelm uslubi: gumbaz + past chetida ixcham soyabon (flare).
+parts.append(dome("HelmetDome", (0.29, 0.31, 0.27), (0.0, 0.0, 1.87), HELMET))
+parts.append(box("HelmetBrim", (0.30, 0.32, 0.025), (0.0, -0.01, 1.74), HELMET))
 
 # Miltiq (nayza bilan) — ko'krak balandligida oldinga (nayza hujumi tayyorgarligi)
 parts.append(box("Rifle", (0.05, 0.85, 0.07), (0.18, 0.18, 1.02), WOOD))

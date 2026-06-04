@@ -135,9 +135,12 @@ qayta yaratiladigan (reproducible), izohlar o'zbekcha. **Uslub:** stilize low-po
   (`idle`/`run`/`attack`/`die`). Har animatsiya self-contained (barcha suyaklarni belgilaydi).
 - **Integratsiya:** `enemy.tscn` modelni instance qiladi; `enemy.gd` AnimationPlayer'ni FSM bilan
   boshqaradi (`find_child` orqali topadi). Collision kapsula alohida qoladi (fizika).
-- **Generatorlar:** `soldier.py` (Kron askari, animatsiyali) · `props.py` (xandaq bezagi —
-  `trench_dressing.glb`, arenaga bir marta instance) · `weapons.py` (Avtomat/Miltiq viewmodel,
-  `player.tscn` Weapon ostida; `weapon.gd` faol qurol modelini ko'rsatadi).
+- **Generatorlar:** `soldier.py` (Kron askari, animatsiyali; dubulg'a bosh ustida) · `props.py`
+  (xandaq bezagi — `trench_dressing.glb`, arenaga bir marta instance) · `weapons.py` (Avtomat/Miltiq
+  viewmodel + qo'l/yeng; `player.tscn` Weapon ostida; `weapon.gd` faol qurol modelini ko'rsatadi).
+- **Viewmodel animatsiyasi (`weapon.gd`):** otishda recoil (tepish) + muzzle flash (Muzzle ostidagi
+  doimiy emissive tugun, 0.05s toggle), qurol almashganda equip (pastdan ko'tarilish), yengil bob.
+  Hammasi `_update_viewmodel` da har model'ning asl (base) joyiga offset qo'shib hisoblanadi.
 - **In-game tekshiruv:** kerak bo'lsa vaqtinchalik scene bilan Godot'ni oynali (`--headless`siz)
   ishga tushirib, `get_viewport().get_texture().get_image().save_png(...)` orqali kadr olib,
   Read bilan ko'rish mumkin (modellar joylashuvini tasdiqlash uchun).

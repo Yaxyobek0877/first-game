@@ -20,8 +20,15 @@ var _current_index: int = 0
 var _ammo_counts: Array[int] = []
 var _cooldown: float = 0.0             ## Keyingi otishgacha qolgan vaqt
 
+# --- Viewmodel animatsiyasi (recoil / equip / bob) ---
+var _base_pos: Array[Vector3] = []     ## Har model'ning asl (base) joyi
+var _recoil: Vector3 = Vector3.ZERO    ## Otishda tepish (decay bilan nolga qaytadi)
+var _equip_t: float = 0.0              ## Qurol olish (pastdan ko'tarilish): 0 -> 1
+var _time: float = 0.0                 ## Yengil tebranish (bob) uchun
+
 @onready var ray: RayCast3D = $RayCast3D     ## Nishonni aniqlaydigan nur
 @onready var muzzle: Marker3D = $Muzzle      ## Quvur uchi (effekt chiqadigan nuqta)
+@onready var _flash: MeshInstance3D = $Muzzle/MuzzleFlash  ## Otish alangasi (toggle)
 ## Qurol 3D modellari — tartibi `weapons` bilan bir xil (0=Avtomat, 1=Miltiq).
 ## Faol qurolniki ko'rinadi, qolgani yashiriladi.
 @onready var _models: Array[Node3D] = [$AvtomatModel, $MiltiqModel]
@@ -47,6 +54,12 @@ func _ready() -> void:
 	if body != null:
 		ray.add_exception(body)
 
+	# Viewmodel animatsiyasi uchun har model'ning asl joyini saqlaymiz.
+	_base_pos.resize(_models.size())
+	for i in _models.size():
+		if _models[i] != null:
+			_base_pos[i] = _models[i].position
+
 	# Boshlang'ich o'q-dori va qurol nomini HUD'ga yuboramiz.
 	# DIQQAT: call_deferred — HUD hali signalga ulanib ulgurishi uchun (kadr oxirida).
 	_apply_active_weapon.call_deferred()
@@ -55,6 +68,12 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if _cooldown > 0.0:
 		_cooldown -= delta
+
+	# Viewmodel animatsiyasi: recoil so'nadi, equip ko'tariladi, yengil bob qo'shiladi.
+	_time += delta
+	_recoil = _recoil.lerp(Vector3.ZERO, clampf(delta * 14.0, 0.0, 1.0))
+	_equip_t = move_toward(_equip_t, 1.0, delta * 4.5)
+	_update_viewmodel()
 
 	# Qurol almashtirish — sichqoncha qamalmagan bo'lsa ham ishlasin (mouse guard'dan oldin).
 	if Input.is_action_just_pressed("weapon_1"):
@@ -94,6 +113,7 @@ func _switch_to(index: int) -> void:
 	if index == _current_index:
 		return
 	_current_index = index
+	_equip_t = 0.0   # yangi qurol pastdan "olinadi" (equip animatsiyasi)
 	# Cooldown'ni SAQLAB qolamiz (nolga tushirmaymiz) — aks holda `1`/`2` ni tez-tez
 	# bosib fire_rate cheklovini chetlab o'tib, juda tez otish mumkin bo'lardi (exploit).
 	_apply_active_weapon()
@@ -116,11 +136,43 @@ func _show_active_model() -> void:
 			_models[i].visible = (i == _current_index)
 
 
+## Faol qurolni recoil + equip + bob offsetlari bilan asl joyiga nisbatan suradi.
+func _update_viewmodel() -> void:
+	if _current_index >= _models.size() or _models[_current_index] == null:
+		return
+	if _current_index >= _base_pos.size():
+		return
+	var m: Node3D = _models[_current_index]
+	var bob := Vector3(sin(_time * 1.8) * 0.003, sin(_time * 3.6) * 0.003, 0.0)
+	# equip: 0 da pastroq/orqaroq, 1 da asl joyda
+	var equip := (1.0 - _equip_t) * Vector3(0.05, -0.14, 0.05)
+	m.position = _base_pos[_current_index] + _recoil + bob + equip
+
+
+## Quvur uchidagi doimiy alanga tugunini qisqa vaqt ko'rsatadi (otish his uchun).
+func _muzzle_flash() -> void:
+	if _flash == null:
+		return
+	_flash.visible = true
+	get_tree().create_timer(0.05).timeout.connect(_hide_flash)
+
+
+func _hide_flash() -> void:
+	if is_instance_valid(_flash):
+		_flash.visible = false
+
+
 func _shoot() -> void:
 	var w: Resource = _active()
 	_cooldown = w.fire_rate
 	_ammo_counts[_current_index] -= 1
 	Events.ammo_changed.emit(_ammo_counts[_current_index], w.max_ammo)
+
+	# Otish "tepishi" (recoil — orqaga/tepaga) + quvur uchidagi alanga.
+	_recoil += Vector3(0.0, 0.012, 0.045)
+	_recoil.z = minf(_recoil.z, 0.08)
+	_recoil.y = minf(_recoil.y, 0.03)
+	_muzzle_flash()
 
 	# Nurning uzunligini qurol masofasiga moslaymiz va shu kadrda yangilaymiz.
 	ray.target_position = Vector3(0.0, 0.0, -w.max_range)

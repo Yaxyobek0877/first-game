@@ -61,6 +61,13 @@ def cyl(name, r, h, loc, material, rot=(0, 0, 0), verts=10):
     return o
 
 
+def add_hand(gx, gy, gz, glove_mat, sleeve_mat):
+    """Gripda qo'l (glove) + orqaga-pastga cho'zilgan bilak/yeng (kameraga tomon)."""
+    box("Glove", (0.085, 0.10, 0.075), (gx, gy, gz), glove_mat)
+    # Bilak/yeng: -Y (orqaga, kameraga) va biroz -Z (pastga) cho'ziladi
+    box("Forearm", (0.075, 0.22, 0.075), (gx, gy - 0.13, gz - 0.07), sleeve_mat, rot=(-26, 0, 0))
+
+
 def join_export(name, glb_name):
     bpy.ops.object.select_all(action='DESELECT')
     for o in _objs:
@@ -96,6 +103,11 @@ box("Magazine", (0.04, 0.05, 0.17), (0, 0.08, -0.12), A_METAL)         # magazin
 box("Grip", (0.04, 0.05, 0.10), (0, -0.07, -0.07), A_WOOD, rot=(18, 0, 0))  # tutqich
 box("Stock", (0.045, 0.18, 0.06), (0, -0.20, -0.01), A_WOOD)          # qo'ndoq (orqaga)
 box("FrontGrip", (0.035, 0.04, 0.08), (0, 0.20, -0.07), A_WOOD)       # oldingi tutqich
+# Qo'llar (Aros askari — xaki yeng, qora qo'lqop): tutqich + oldingi tutqichda
+A_GLOVE = mat("A_Glove", (0.16, 0.12, 0.08), rough=0.7)
+A_SLEEVE = mat("A_Sleeve", (0.41, 0.35, 0.23), rough=0.85)
+add_hand(0.0, -0.05, -0.085, A_GLOVE, A_SLEEVE)   # tutqich (trigger) qo'li
+add_hand(0.0, 0.20, -0.10, A_GLOVE, A_SLEEVE)     # oldingi tutqich qo'li
 avtomat = join_export("Avtomat", "avtomat.glb")
 
 # ============================================================================
@@ -112,6 +124,11 @@ box("Receiver", (0.045, 0.14, 0.06), (0, 0.06, 0.03), M_METAL)        # qabul/za
 box("Bolt", (0.10, 0.03, 0.03), (0.06, 0.05, 0.05), M_METAL)          # zatvor dastasi (yonda)
 box("Trigger", (0.02, 0.03, 0.05), (0, 0.0, -0.06), M_METAL)          # tepki
 box("Bayonet", (0.012, 0.24, 0.012), (0, 0.86, 0.035), M_BAYO)        # nayza (uchida)
+# Qo'llar: tepki yonida + oldingi yog'och qism (forestock)da
+M_GLOVE = mat("M_Glove", (0.16, 0.12, 0.08), rough=0.7)
+M_SLEEVE = mat("M_Sleeve", (0.41, 0.35, 0.23), rough=0.85)
+add_hand(0.0, 0.02, -0.075, M_GLOVE, M_SLEEVE)    # tepki (trigger) qo'li
+add_hand(0.0, 0.34, -0.045, M_GLOVE, M_SLEEVE)    # oldingi qo'l (forestock)
 miltiq = join_export("Miltiq", "miltiq.glb")
 
 
