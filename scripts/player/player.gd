@@ -52,10 +52,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		head.rotate_x(-event.relative.y * mouse_sensitivity)
 		# Boshni 90 darajadan ortiq egmaslik uchun cheklaymiz (orqaga ag'darilmaslik).
 		head.rotation.x = clampf(head.rotation.x, deg_to_rad(-89.0), deg_to_rad(89.0))
-
-	# Esc — sichqonchani bo'shatish/qaytarish (pauza menyusi uchun asos).
-	if event.is_action_pressed("pause"):
-		_toggle_mouse_capture()
+	# Esc (pauza) endi PauseMenu tomonidan boshqariladi — bu yerda emas.
 
 
 func _physics_process(delta: float) -> void:
@@ -128,10 +125,3 @@ func _die() -> void:
 	# qayta boshlash tugmasi ishlamay qolishi mumkin.
 	Events.player_died.emit()
 	print("O'yinchi halok bo'ldi!")
-
-
-func _toggle_mouse_capture() -> void:
-	if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	else:
-		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
