@@ -44,7 +44,13 @@ def make_material(name, color, rough=0.85, metal=0.0):
     return m
 
 
-def box(name, size, loc, mat, rot=(0, 0, 0)):
+## Silliq/qirrali shading — har ko'pburchakka to'g'ridan-to'g'ri (ops'siz, ishonchli).
+def _shade(o, smooth):
+    for p in o.data.polygons:
+        p.use_smooth = smooth
+
+
+def box(name, size, loc, mat, rot=(0, 0, 0), smooth=False):
     bpy.ops.mesh.primitive_cube_add(size=1.0, location=loc)
     o = bpy.context.active_object
     o.name = name
@@ -52,29 +58,51 @@ def box(name, size, loc, mat, rot=(0, 0, 0)):
     o.rotation_euler = (radians(rot[0]), radians(rot[1]), radians(rot[2]))
     bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
     o.data.materials.append(mat)
+    _shade(o, smooth)
     return o
 
 
-def cyl(name, radius, depth, loc, mat, verts=10, rot=(0, 0, 0)):
+def cyl(name, radius, depth, loc, mat, verts=16, rot=(0, 0, 0), smooth=True):
     bpy.ops.mesh.primitive_cylinder_add(vertices=verts, radius=radius, depth=depth, location=loc)
     o = bpy.context.active_object
     o.name = name
     o.rotation_euler = (radians(rot[0]), radians(rot[1]), radians(rot[2]))
     bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
     o.data.materials.append(mat)
-    bpy.ops.object.shade_flat()
+    _shade(o, smooth)
     return o
 
 
-def dome(name, size, loc, mat, subdiv=2):
+## Konus (yo'g'on-ingichka) — tabiiy a'zolar uchun (son/bilak — tepa/pastda har xil radius).
+## r_bot = past (−Z) radius, r_top = tepa (+Z) radius. scale bilan ko'ndalang kesimni yassilash.
+def taper(name, r_bot, r_top, depth, loc, mat, verts=14, rot=(0, 0, 0), scale=(1, 1, 1), smooth=True):
+    bpy.ops.mesh.primitive_cone_add(vertices=verts, radius1=r_bot, radius2=r_top, depth=depth, location=loc)
+    o = bpy.context.active_object
+    o.name = name
+    o.scale = scale
+    o.rotation_euler = (radians(rot[0]), radians(rot[1]), radians(rot[2]))
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+    o.data.materials.append(mat)
+    _shade(o, smooth)
+    return o
+
+
+## Shar (ico) — bo'g'imlar (tizza/tirsak/yelka), bosh, jag' uchun. size bilan cho'zish.
+def ball(name, size, loc, mat, subdiv=2, rot=(0, 0, 0), smooth=True):
     bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=subdiv, radius=0.5, location=loc)
     o = bpy.context.active_object
     o.name = name
     o.scale = (size[0], size[1], size[2])
-    bpy.ops.object.transform_apply(scale=True)
+    o.rotation_euler = (radians(rot[0]), radians(rot[1]), radians(rot[2]))
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
     o.data.materials.append(mat)
-    bpy.ops.object.shade_flat()
+    _shade(o, smooth)
     return o
+
+
+# Eski "dome" nomi -> ball bilan bir xil (moslik uchun).
+def dome(name, size, loc, mat, subdiv=2):
+    return ball(name, size, loc, mat, subdiv=subdiv)
 
 
 def setup_camera_and_light():
@@ -117,14 +145,23 @@ def render_preview(path):
 
 # Har qism qaysi suyakka biriktiriladi (rigid skinning — har qism 1 suyak)
 BONE_OF = {
-    "Boot.L": "LegL", "Leg.L": "LegL",
-    "Boot.R": "LegR", "Leg.R": "LegR",
-    "Torso": "Spine", "Belt": "Spine", "Collar": "Spine",
-    "Shoulders": "Spine", "Backpack": "Spine", "Pouch.L": "Spine",
-    "Pouch.R": "Spine", "Strap": "Spine", "Canteen": "Spine",
-    "Arm.L": "ArmL", "Hand.L": "ArmL",
-    "Arm.R": "ArmR", "Hand.R": "ArmR", "Rifle": "ArmR", "Bayonet": "ArmR",
-    "Neck": "Head", "Head": "Head", "HelmetDome": "Head", "HelmetBrim": "Head",
+    # Oyoqlar (etik + boldir + tizza + son) — har qism oyoq suyagiga
+    "Boot.L": "LegL", "Shin.L": "LegL", "Knee.L": "LegL", "Thigh.L": "LegL",
+    "Boot.R": "LegR", "Shin.R": "LegR", "Knee.R": "LegR", "Thigh.R": "LegR",
+    # Tos (Hips)
+    "Pelvis": "Hips",
+    # Tana + jihoz (Spine)
+    "Torso": "Spine", "Belt": "Spine", "Collar": "Spine", "Shoulder.L": "Spine",
+    "Shoulder.R": "Spine", "Backpack": "Spine", "Pouch.L": "Spine",
+    "Pouch.R": "Spine", "Strap": "Spine", "Canteen": "Spine", "Button": "Spine",
+    # Qo'llar (yelka pastidan: yelka-yuqori + tirsak + bilak + kaft) + miltiq
+    "UpperArm.L": "ArmL", "Elbow.L": "ArmL", "Forearm.L": "ArmL", "Hand.L": "ArmL",
+    "UpperArm.R": "ArmR", "Elbow.R": "ArmR", "Forearm.R": "ArmR", "Hand.R": "ArmR",
+    "Rifle": "ArmR", "Bayonet": "ArmR",
+    # Bo'yin + bosh + yuz + dubulg'a (Head)
+    "Neck": "Head", "Head": "Head", "Jaw": "Head", "Nose": "Head", "Brow": "Head",
+    "HelmetDome": "Head", "HelmetFlare": "Head",
+    "HelmetLug.L": "Head", "HelmetLug.R": "Head",
 }
 ALL_BONES = ["Hips", "Spine", "Head", "ArmL", "ArmR", "LegL", "LegR"]
 
@@ -166,31 +203,57 @@ def build_soldier(faction, cfg):
     METAL = make_material(faction + "_RifleMetal", (0.55, 0.57, 0.60), rough=0.4, metal=0.6)
     PACK = make_material(faction + "_Pack", (0.30, 0.26, 0.18), rough=0.95)  # kanvas/jihoz
 
-    # --- Qismlar (Blender: Z tepaga, oyoq Z=0 da, bo'y ~1.85 m) ---
+    # --- Qismlar: yumaloq/konus shakllar + bo'g'imlar (realistikroq silueti) ---
+    # Blender: Z tepaga, oyoq Z=0 da, bo'y ~1.9 m. Old tomon = -Y.
     parts = []
-    parts.append(box("Boot.L", (0.16, 0.30, 0.12), (-0.12, 0.03, 0.06), BOOT))
-    parts.append(box("Boot.R", (0.16, 0.30, 0.12), (0.12, 0.03, 0.06), BOOT))
-    parts.append(cyl("Leg.L", 0.085, 0.78, (-0.12, 0.0, 0.50), TROUSER))
-    parts.append(cyl("Leg.R", 0.085, 0.78, (0.12, 0.0, 0.50), TROUSER))
-    # Tana biroz torroq + yelka kengligi (silueti "askar"roq).
-    parts.append(box("Torso", (0.42, 0.24, 0.58), (0.0, 0.0, 1.18), COAT))
-    parts.append(box("Shoulders", (0.50, 0.26, 0.14), (0.0, 0.0, 1.44), COAT))
-    parts.append(box("Belt", (0.48, 0.26, 0.07), (0.0, 0.0, 0.92), BELT))
-    parts.append(box("Collar", (0.28, 0.20, 0.08), (0.0, 0.0, 1.50), ACCENT))
-    # Jihoz: orqada ryukzak, beldagi patrondonlar, ko'krakdan tasma, yonda matara.
-    parts.append(box("Backpack", (0.30, 0.16, 0.36), (0.0, -0.20, 1.22), PACK))
-    parts.append(box("Pouch.L", (0.11, 0.09, 0.11), (-0.13, 0.15, 0.93), PACK))
-    parts.append(box("Pouch.R", (0.11, 0.09, 0.11), (0.13, 0.15, 0.93), PACK))
-    parts.append(box("Strap", (0.07, 0.03, 0.56), (0.0, 0.13, 1.18), BELT, rot=(0, 30, 0)))
-    parts.append(cyl("Canteen", 0.055, 0.13, (0.21, -0.03, 0.85), METAL, rot=(90, 0, 0)))
-    parts.append(cyl("Arm.L", 0.07, 0.58, (-0.30, 0.02, 1.18), COAT, rot=(0, 6, 0)))
-    parts.append(cyl("Arm.R", 0.07, 0.58, (0.30, 0.02, 1.18), COAT, rot=(0, -6, 0)))
-    parts.append(box("Hand.L", (0.10, 0.12, 0.12), (-0.31, 0.04, 0.88), SKIN))
-    parts.append(box("Hand.R", (0.10, 0.12, 0.12), (0.31, 0.04, 0.88), SKIN))
-    parts.append(box("Neck", (0.11, 0.11, 0.10), (0.0, 0.0, 1.58), SKIN))
-    parts.append(box("Head", (0.19, 0.20, 0.22), (0.0, 0.0, 1.72), SKIN))
-    parts.append(dome("HelmetDome", (0.27, 0.29, 0.26), (0.0, 0.0, 1.86), HELMET))
-    parts.append(box("HelmetBrim", (0.29, 0.31, 0.025), (0.0, -0.01, 1.74), HELMET))
+
+    # Oyoqlar (chap/o'ng): etik + boldir(konus) + tizza(shar) + son(konus)
+    for sx, sfx in [(-0.13, "L"), (0.13, "R")]:
+        parts.append(box("Boot." + sfx, (0.155, 0.34, 0.13), (sx, -0.04, 0.07), BOOT))
+        parts.append(taper("Shin." + sfx, 0.066, 0.088, 0.40, (sx, 0.0, 0.40), TROUSER, verts=12))
+        parts.append(ball("Knee." + sfx, (0.094, 0.094, 0.094), (sx, 0.0, 0.585), TROUSER, subdiv=1))
+        parts.append(taper("Thigh." + sfx, 0.088, 0.122, 0.34, (sx, 0.0, 0.77), TROUSER, verts=12))
+
+    # Tos (Hips)
+    parts.append(ball("Pelvis", (0.36, 0.25, 0.27), (0.0, 0.0, 0.97), TROUSER, subdiv=2))
+
+    # Tana (oval konus — bel ingichka, ko'krak keng) + yelka sharlari + yoqa + tugmalar
+    parts.append(taper("Torso", 0.205, 0.25, 0.46, (0.0, 0.0, 1.26), COAT, verts=18, scale=(1.0, 0.72, 1.0)))
+    parts.append(ball("Shoulder.L", (0.17, 0.18, 0.15), (-0.21, 0.0, 1.45), COAT, subdiv=2))
+    parts.append(ball("Shoulder.R", (0.17, 0.18, 0.15), (0.21, 0.0, 1.45), COAT, subdiv=2))
+    parts.append(taper("Collar", 0.135, 0.10, 0.08, (0.0, 0.0, 1.53), ACCENT, verts=14, scale=(1.0, 0.82, 1.0)))
+    parts.append(box("Belt", (0.46, 0.27, 0.07), (0.0, 0.0, 0.93), BELT))
+    parts.append(box("Button", (0.035, 0.02, 0.42), (0.0, -0.175, 1.26), METAL))
+
+    # Jihoz: ryukzak (orqa +Y), beldagi patrondonlar (old -Y), ko'krak tasmasi, matara
+    parts.append(box("Backpack", (0.30, 0.16, 0.36), (0.0, 0.19, 1.22), PACK))
+    parts.append(box("Pouch.L", (0.11, 0.09, 0.11), (-0.13, -0.155, 0.93), PACK))
+    parts.append(box("Pouch.R", (0.11, 0.09, 0.11), (0.13, -0.155, 0.93), PACK))
+    parts.append(box("Strap", (0.06, 0.03, 0.56), (0.0, -0.13, 1.2), BELT, rot=(0, 28, 0)))
+    parts.append(cyl("Canteen", 0.055, 0.13, (0.22, 0.06, 0.85), METAL, verts=12, rot=(90, 0, 0)))
+
+    # Qo'llar: yelka-yuqori(konus) + tirsak(shar) + bilak(konus) + kaft(shar)
+    for sx, sfx in [(-0.31, "L"), (0.31, "R")]:
+        parts.append(taper("UpperArm." + sfx, 0.062, 0.08, 0.30, (sx, 0.0, 1.28), COAT, verts=12))
+        parts.append(ball("Elbow." + sfx, (0.066, 0.066, 0.066), (sx, 0.0, 1.11), COAT, subdiv=1))
+        parts.append(taper("Forearm." + sfx, 0.052, 0.064, 0.27, (sx, 0.01, 0.96), COAT, verts=12))
+        parts.append(ball("Hand." + sfx, (0.075, 0.085, 0.105), (sx, 0.02, 0.81), SKIN, subdiv=2))
+
+    # Bo'yin + bosh + yuz (jag', qosh, burun)
+    parts.append(taper("Neck", 0.07, 0.062, 0.13, (0.0, 0.0, 1.57), SKIN, verts=12))
+    parts.append(ball("Head", (0.20, 0.215, 0.235), (0.0, 0.0, 1.71), SKIN, subdiv=2))
+    parts.append(ball("Jaw", (0.16, 0.165, 0.105), (0.0, -0.02, 1.635), SKIN, subdiv=2))
+    parts.append(box("Brow", (0.16, 0.04, 0.035), (0.0, -0.10, 1.77), SKIN))
+    parts.append(box("Nose", (0.04, 0.055, 0.06), (0.0, -0.115, 1.70), SKIN))
+
+    # Dubulg'a (Stahlhelm): boshni qoplaydigan gumbaz + pastda ozgina qayrilgan chekka
+    # (boshdan biroz keng — quloq/bo'yinni o'raydi) + yon shamollatish lug'lari.
+    parts.append(ball("HelmetDome", (0.285, 0.30, 0.24), (0.0, 0.0, 1.82), HELMET, subdiv=2))
+    parts.append(taper("HelmetFlare", 0.17, 0.145, 0.12, (0.0, 0.0, 1.74), HELMET, verts=20, scale=(1.0, 1.12, 1.0)))
+    parts.append(ball("HelmetLug.L", (0.03, 0.03, 0.028), (-0.145, 0.0, 1.80), HELMET, subdiv=1))
+    parts.append(ball("HelmetLug.R", (0.03, 0.03, 0.028), (0.145, 0.0, 1.80), HELMET, subdiv=1))
+
+    # Miltiq + nayza (o'ng qo'lda)
     parts.append(box("Rifle", (0.05, 0.85, 0.07), (0.18, 0.18, 1.02), WOOD))
     parts.append(box("Bayonet", (0.022, 0.28, 0.022), (0.18, 0.74, 1.02), METAL))
 
