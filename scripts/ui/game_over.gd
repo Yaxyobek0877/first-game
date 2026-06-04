@@ -10,6 +10,7 @@ extends CanvasLayer
 ## Shuning uchun bu ekranni PROCESS_MODE_ALWAYS qilamiz: pauzadan qat'i nazar ishlaydi.
 
 @onready var restart_button: Button = $Panel/CenterContainer/VBoxContainer/RestartButton
+@onready var menu_button: Button = $Panel/CenterContainer/VBoxContainer/MenuButton
 
 
 func _ready() -> void:
@@ -19,6 +20,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	Events.player_died.connect(_on_player_died)
 	restart_button.pressed.connect(_on_restart_pressed)
+	menu_button.pressed.connect(_on_main_menu)
 
 
 func _on_player_died() -> void:
@@ -38,3 +40,9 @@ func _on_restart_pressed() -> void:
 	get_tree().paused = false
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	get_tree().reload_current_scene()
+
+
+func _on_main_menu() -> void:
+	# Pauzani yechib, bosh menyuga qaytamiz.
+	get_tree().paused = false
+	get_tree().change_scene_to_file("res://scenes/ui/main_menu.tscn")

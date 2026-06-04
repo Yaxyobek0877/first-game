@@ -7,6 +7,7 @@ extends CanvasLayer
 
 @onready var resume_button: Button = $Panel/CenterContainer/VBoxContainer/ResumeButton
 @onready var restart_button: Button = $Panel/CenterContainer/VBoxContainer/RestartButton
+@onready var menu_button: Button = $Panel/CenterContainer/VBoxContainer/MenuButton
 @onready var quit_button: Button = $Panel/CenterContainer/VBoxContainer/QuitButton
 
 var _paused: bool = false
@@ -19,6 +20,7 @@ func _ready() -> void:
 	Events.player_died.connect(_on_player_died)
 	resume_button.pressed.connect(_resume)
 	restart_button.pressed.connect(_on_restart)
+	menu_button.pressed.connect(_on_main_menu)
 	quit_button.pressed.connect(_on_quit)
 
 
@@ -54,6 +56,12 @@ func _on_restart() -> void:
 	get_tree().paused = false
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	get_tree().reload_current_scene()
+
+
+func _on_main_menu() -> void:
+	# Pauzani yechib, bosh menyuga qaytamiz.
+	get_tree().paused = false
+	get_tree().change_scene_to_file("res://scenes/ui/main_menu.tscn")
 
 
 func _on_quit() -> void:
