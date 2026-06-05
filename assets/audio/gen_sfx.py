@@ -74,14 +74,41 @@ def make_grenade_throw():
 
 
 def make_grenade_bounce():
-	"""Granata yerga tegib 'tink' — qisqa metall ohang."""
-	dur = 0.09; n = int(SR * dur); out = [0.0] * n
+	"""Granata yerga tegib 'tink' — qisqa metall ohang (balandroq — eshitilsin)."""
+	dur = 0.10; n = int(SR * dur); out = [0.0] * n
 	for i in range(n):
 		t = i / SR
-		env = math.exp(-t * 55.0)
-		s = math.sin(2 * math.pi * 540.0 * t) * 0.5 + math.sin(2 * math.pi * 870.0 * t) * 0.3
-		out[i] = (s + noise() * 0.2) * env * 0.6
+		env = math.exp(-t * 50.0)
+		s = math.sin(2 * math.pi * 520.0 * t) * 0.5 + math.sin(2 * math.pi * 880.0 * t) * 0.32
+		out[i] = (s + noise() * 0.22) * env
+	return normalize(out, 0.9)
+
+
+def make_pickup():
+	"""Narsa olinganda yoqimli 'bip-bip' (ikki ohang yuqoriga)."""
+	dur = 0.16; n = int(SR * dur); out = [0.0] * n
+	for seg, f in ((0.0, 880.0), (0.06, 1320.0)):
+		c0 = int(SR * seg)
+		for i in range(int(SR * 0.07)):
+			t = i / SR
+			env = math.exp(-t * 26.0)
+			if c0 + i < n:
+				out[c0 + i] += math.sin(2 * math.pi * f * t) * env * 0.5
 	return out
+
+
+def make_enemy_shot():
+	"""Dushman miltig'i otishi — o'tkir, quruqroq 'qars' (player avtomatidan farqli, biroz uzoqroq)."""
+	random.seed(207)
+	dur = 0.18; n = int(SR * dur); out = [0.0] * n
+	for i in range(n):
+		t = i / SR
+		env = math.exp(-t * 30.0)
+		crack = noise() * 0.7                                  # taraq (oq shovqin)
+		body = math.sin(2 * math.pi * 105.0 * t) * 0.5         # past 'dub'
+		snap = math.sin(2 * math.pi * 2100.0 * t) * math.exp(-t * 85.0) * 0.45  # o'tkir bosh
+		out[i] = soft_clip((crack + body + snap) * env)
+	return normalize(out, 0.95)
 
 
 def make_flashbang():
@@ -197,4 +224,6 @@ if __name__ == "__main__":
 	write_wav(os.path.join(OUT, "grenade_throw.wav"), make_grenade_throw())
 	write_wav(os.path.join(OUT, "grenade_bounce.wav"), make_grenade_bounce())
 	write_wav(os.path.join(OUT, "flashbang.wav"), make_flashbang())
+	write_wav(os.path.join(OUT, "pickup.wav"), make_pickup())
+	write_wav(os.path.join(OUT, "enemy_shot.wav"), make_enemy_shot())
 	print("DONE")

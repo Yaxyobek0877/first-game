@@ -21,7 +21,15 @@ var _cd: float = 0.0
 func _ready() -> void:
 	_counts = START_COUNTS.duplicate()
 	Events.wave_started.connect(_on_wave)
+	Events.grenade_pickup.connect(_on_pickup)
 	_announce.call_deferred()   # HUD ulanib ulgurishi uchun
+
+
+## Yerdan granata olinganda — o'sha turdagi son oshadi (maks 9).
+func _on_pickup(grenade_type: String) -> void:
+	if _counts.has(grenade_type):
+		_counts[grenade_type] = mini(int(_counts[grenade_type]) + 1, 9)
+		_announce()
 
 
 func _on_wave(_wave: int) -> void:
@@ -44,6 +52,11 @@ func _process(delta: float) -> void:
 
 func _cur() -> String:
 	return TYPES[_type_idx]
+
+
+## Inventar UI uchun — barcha granata turlari sonini qaytaradi.
+func get_counts() -> Dictionary:
+	return _counts.duplicate()
 
 
 func _announce() -> void:

@@ -58,7 +58,7 @@ func _process(delta: float) -> void:
 
 func _on_contact(_body: Node) -> void:
 	# Yerga/devorga tegganda "tink" (juda tez takrorlanmasin, sekin tekkanda jim).
-	if _bounce_cd <= 0.0 and linear_velocity.length() > 1.5:
+	if _bounce_cd <= 0.0 and linear_velocity.length() > 0.8:
 		_bounce_cd = 0.15
 		var p := AudioStreamPlayer3D.new()
 		p.stream = load("res://assets/audio/grenade_bounce.wav")

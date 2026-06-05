@@ -11,7 +11,8 @@ class_name WeaponData
 @export var display_name: String = "Qurol"   ## HUD'da ko'rinadigan nom
 @export var damage: float = 25.0              ## Har otishdagi zarar
 @export var fire_rate: float = 0.15           ## Otishlar orasidagi minimal vaqt (s)
-@export var max_ammo: int = 12                ## Magazin sig'imi
+@export var max_ammo: int = 12                ## Magazin sig'imi (bitta magazindagi o'q)
+@export var magazines: int = 3                ## Zaxira magazinlar soni — har reload bittasini kamaytiradi
 @export var auto_fire: bool = true            ## true = tugmani bosib tursa otaveradi
 @export var spread: float = 0.0               ## Tarqalish (radian) — kelajak uchun, hozir 0
 @export var max_range: float = 1000.0         ## Nur uzunligi (m). Nomi "range" emas —

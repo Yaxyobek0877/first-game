@@ -749,6 +749,7 @@ func _ranged_strike() -> void:
 		return
 	_enemy_muzzle_flash()
 	var muzzle_pos: Vector3 = global_position - global_transform.basis.z * 0.7 + Vector3(0, 1.0, 0)
+	_play_shot_sound(muzzle_pos)
 	var hit_pos: Vector3 = _player.global_position + Vector3(0, 1.1, 0)
 	_spawn_tracer(muzzle_pos, hit_pos)
 	_spawn_impact(hit_pos)
@@ -807,6 +808,21 @@ func _has_line_of_sight() -> bool:
 	q.exclude = [get_rid()]
 	var hit := space.intersect_ray(q)
 	return not hit.is_empty() and hit.collider == _player
+
+
+## Dushman otganda pozitsion otish ovozi (3D — masofadan eshitiladi). current_scene'ga
+## qo'shamiz, dushman o'sha zahoti o'lsa ham ovoz uziladi (qisqa, o'zini o'chiradi).
+func _play_shot_sound(pos: Vector3) -> void:
+	var p := AudioStreamPlayer3D.new()
+	p.stream = load("res://assets/audio/enemy_shot.wav")
+	p.bus = "SFX"
+	p.unit_size = 14.0
+	p.max_distance = 85.0
+	p.pitch_scale = randf_range(0.9, 1.1)
+	get_tree().current_scene.add_child(p)
+	p.global_position = pos
+	p.play()
+	p.finished.connect(p.queue_free)
 
 
 ## Dushman quroli uchida qisqa alanga (otganda).

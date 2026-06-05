@@ -12,6 +12,9 @@ extends Node
 ## Qurol otganda yoki qayta o'qlanganda o'q-dori soni o'zgaradi.
 signal ammo_changed(current: int, max_ammo: int)
 
+## Zaxira magazinlar soni o'zgarganda (reload bittasini kamaytiradi). HUD ko'rsatadi.
+signal mags_changed(reserve: int)
+
 ## O'yinchi joni o'zgarganda (zarar olganda / davolanganda).
 signal player_health_changed(current: float, max_health: float)
 
@@ -43,3 +46,9 @@ signal explosion(center: Vector3, radius: float)
 
 ## Granata turi yoki soni o'zgarganda — HUD joriy turni va sonni ko'rsatadi.
 signal grenade_changed(grenade_type: String, count: int)
+
+## Yerdan o'q-dori olinganda (pickup) — joriy qurol zaxira magazini oshadi.
+signal ammo_pickup(mags: int)
+
+## Yerdan granata olinganda (pickup) — GrenadeThrower granata sonini oshiradi.
+signal grenade_pickup(grenade_type: String)

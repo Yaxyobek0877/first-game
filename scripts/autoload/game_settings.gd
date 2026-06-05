@@ -20,6 +20,16 @@ var fullscreen: bool = false
 ## Ekrandagi FPS ko'rsatkichi ko'rinsinmi (HUD shuni o'qiydi).
 var show_fps: bool = false
 
+## Rebind qilsa bo'ladigan action'lar (Settings "Boshqaruv" bo'limida ko'rinadi).
+const REBINDABLE := [
+	"move_forward", "move_back", "move_left", "move_right",
+	"jump", "sprint", "crouch", "prone", "lean_left", "lean_right",
+	"shoot", "aim", "reload", "weapon_1", "weapon_2",
+	"grenade", "grenade_cycle", "interact", "inventory",
+]
+## action -> loyiha standart hodisalari (reset uchun, _ready'da olinadi).
+var _default_events: Dictionary = {}
+
 ## Sozlama o'zgarganda yuboriladi (UI o'zaro sinxron bo'lishi uchun, kelajak uchun).
 signal changed()
 
@@ -27,8 +37,106 @@ signal changed()
 func _ready() -> void:
 	# Pauzada ham ishlasin (sozlanmalar menyusi pauzada ochiladi).
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_capture_defaults()   # standart tugmalarni saqlaymiz (reset uchun) — yuklashdan OLDIN
 	load_settings()
 	apply_all()
+
+
+# --- Boshqaruv (tugma bog'lanishlari / rebind) ---
+
+## Loyiha standart tugma hodisalarini saqlaymiz (reset shulardan tiklaydi).
+func _capture_defaults() -> void:
+	for a in InputMap.get_actions():
+		_default_events[a] = InputMap.action_get_events(a).duplicate()
+
+
+## Action'ga yangi tugma bog'laydi (eski(lar)ni o'chirib). Toza hodisa yasaydi.
+func set_binding(action: String, event: InputEvent) -> void:
+	var clean := _clean_event(event)
+	if clean == null or not InputMap.has_action(action):
+		return
+	InputMap.action_erase_events(action)
+	InputMap.action_add_event(action, clean)
+	_save_deferred()
+
+
+## Barcha tugmalarni standartga qaytaradi.
+func reset_bindings() -> void:
+	for a in _default_events:
+		if not InputMap.has_action(a):
+			continue
+		InputMap.action_erase_events(a)
+		for e in _default_events[a]:
+			InputMap.action_add_event(a, e)
+	_save_deferred()
+
+
+## Action'ning joriy (birinchi) tugmasi matni — UI uchun.
+func binding_text(action: String) -> String:
+	if not InputMap.has_action(action):
+		return "—"
+	var evs := InputMap.action_get_events(action)
+	return event_text(evs[0]) if not evs.is_empty() else "—"
+
+
+func event_text(e: InputEvent) -> String:
+	if e is InputEventKey:
+		var kc: int = (e as InputEventKey).physical_keycode
+		if kc == 0:
+			kc = (e as InputEventKey).keycode
+		return OS.get_keycode_string(kc)
+	if e is InputEventMouseButton:
+		match (e as InputEventMouseButton).button_index:
+			MOUSE_BUTTON_LEFT: return "Sichqoncha chap"
+			MOUSE_BUTTON_RIGHT: return "Sichqoncha o'ng"
+			MOUSE_BUTTON_MIDDLE: return "Sichqoncha o'rta"
+			MOUSE_BUTTON_WHEEL_UP: return "G'ildirak yuqori"
+			MOUSE_BUTTON_WHEEL_DOWN: return "G'ildirak past"
+			_: return "Sichqoncha %d" % (e as InputEventMouseButton).button_index
+	return "?"
+
+
+## Xom hodisadan toza InputEvent (faqat tugma/sichqoncha; pozitsiya va h.k. tashlanadi).
+func _clean_event(e: InputEvent) -> InputEvent:
+	if e is InputEventKey:
+		var k := InputEventKey.new()
+		var src := e as InputEventKey
+		k.physical_keycode = src.physical_keycode if src.physical_keycode != 0 else src.keycode
+		return k
+	if e is InputEventMouseButton:
+		var m := InputEventMouseButton.new()
+		m.button_index = (e as InputEventMouseButton).button_index
+		return m
+	return null
+
+
+func _serialize_event(e: InputEvent) -> Dictionary:
+	if e is InputEventKey:
+		var src := e as InputEventKey
+		return {"t": "k", "c": (src.physical_keycode if src.physical_keycode != 0 else src.keycode)}
+	if e is InputEventMouseButton:
+		return {"t": "m", "b": (e as InputEventMouseButton).button_index}
+	return {}
+
+
+func _deserialize_event(d: Dictionary) -> InputEvent:
+	match d.get("t", ""):
+		"k":
+			var k := InputEventKey.new(); k.physical_keycode = int(d.get("c", 0)); return k
+		"m":
+			var m := InputEventMouseButton.new(); m.button_index = int(d.get("b", 1)); return m
+	return null
+
+
+## Saqlangan bog'lanishlarni InputMap'ga qo'llaydi (yuklashda).
+func _apply_binds(binds: Dictionary) -> void:
+	for a in binds:
+		if not InputMap.has_action(a):
+			continue
+		var e := _deserialize_event(binds[a])
+		if e != null:
+			InputMap.action_erase_events(a)
+			InputMap.action_add_event(a, e)
 
 
 ## Barcha sozlamalarni AudioServer/Display ga qo'llaydi (o'yin boshlanganda).
@@ -120,6 +228,14 @@ func save_settings() -> void:
 	cfg.set_value("input", "mouse_sensitivity", mouse_sensitivity)
 	cfg.set_value("video", "fullscreen", fullscreen)
 	cfg.set_value("video", "show_fps", show_fps)
+	# Tugma bog'lanishlari (rebind) — har action'ning birinchi hodisasini saqlaymiz.
+	var binds := {}
+	for a in REBINDABLE:
+		if InputMap.has_action(a):
+			var evs := InputMap.action_get_events(a)
+			if not evs.is_empty():
+				binds[a] = _serialize_event(evs[0])
+	cfg.set_value("input", "binds", binds)
 	cfg.save(PATH)
 
 
@@ -133,3 +249,4 @@ func load_settings() -> void:
 	mouse_sensitivity = cfg.get_value("input", "mouse_sensitivity", mouse_sensitivity)
 	fullscreen = cfg.get_value("video", "fullscreen", fullscreen)
 	show_fps = cfg.get_value("video", "show_fps", show_fps)
+	_apply_binds(cfg.get_value("input", "binds", {}))

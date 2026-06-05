@@ -19,7 +19,24 @@ signal closed
 @onready var sens_value: Label = %SensValue
 @onready var fullscreen_check: CheckButton = %FullscreenCheck
 @onready var fps_check: CheckButton = %FpsCheck
+@onready var controls_list: VBoxContainer = %ControlsList
+@onready var reset_controls: Button = %ResetControls
 @onready var back_button: Button = %BackButton
+
+## Action -> ko'rsatiladigan nom (Boshqaruv ro'yxatida).
+const ACTION_NAMES := {
+	"move_forward": "Oldinga", "move_back": "Orqaga", "move_left": "Chapga", "move_right": "O'ngga",
+	"jump": "Sakrash", "sprint": "Yugurish", "crouch": "Cho'kkalash", "prone": "Yotish",
+	"lean_left": "Chapga engashish", "lean_right": "O'ngga engashish",
+	"shoot": "Otish", "aim": "Mo'ljal (aim)", "reload": "Qayta o'qlash",
+	"weapon_1": "Qurol 1", "weapon_2": "Qurol 2",
+	"grenade": "Granata", "grenade_cycle": "Granata turi",
+	"interact": "Olish (pickup)", "inventory": "Inventar",
+}
+
+var _listening_action: String = ""   ## Hozir qaysi action uchun tugma kutilmoqda
+var _listening_button: Button = null
+var _rebind_rows: Dictionary = {}     ## action -> Button (matnni yangilash uchun)
 
 
 func _ready() -> void:
@@ -41,8 +58,10 @@ func _ready() -> void:
 	sens_slider.value_changed.connect(_on_sens)
 	fullscreen_check.toggled.connect(_on_fullscreen)
 	fps_check.toggled.connect(_on_fps)
+	reset_controls.pressed.connect(_on_reset_controls)
 	back_button.pressed.connect(_on_back)
 	back_button.grab_focus()
+	_build_controls()
 
 
 func _refresh_labels() -> void:
@@ -86,8 +105,77 @@ func _on_back() -> void:
 	queue_free()
 
 
+## "Boshqaruv" ro'yxatini quradi — har action uchun [nom | tugma] qatori.
+func _build_controls() -> void:
+	for c in controls_list.get_children():
+		c.queue_free()
+	_rebind_rows.clear()
+	for a in GameSettings.REBINDABLE:
+		if not InputMap.has_action(a):
+			continue
+		var row := HBoxContainer.new()
+		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var name_lbl := Label.new()
+		name_lbl.text = ACTION_NAMES.get(a, a)
+		name_lbl.add_theme_font_size_override("font_size", 18)
+		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(name_lbl)
+		var btn := Button.new()
+		btn.custom_minimum_size = Vector2(150, 0)
+		btn.add_theme_font_size_override("font_size", 18)
+		btn.text = GameSettings.binding_text(a)
+		btn.pressed.connect(_begin_rebind.bind(a, btn))
+		row.add_child(btn)
+		controls_list.add_child(row)
+		_rebind_rows[a] = btn
+
+
+## Tugmani bosganda — keyingi bosilgan tugma/sichqonchani shu action'ga bog'laymiz.
+func _begin_rebind(action: String, btn: Button) -> void:
+	if _listening_action != "":
+		return
+	_listening_action = action
+	_listening_button = btn
+	btn.text = "[ tugma bosing ]"
+	btn.release_focus()
+
+
+## Rebind kutilayotganda bosilgan tugmani ushlaymiz (Esc — bekor qiladi).
+func _input(event: InputEvent) -> void:
+	if _listening_action == "":
+		return
+	var captured := false
+	if event is InputEventKey and event.pressed and not event.echo:
+		if (event as InputEventKey).keycode == KEY_ESCAPE:
+			_listening_button.text = GameSettings.binding_text(_listening_action)
+			_clear_listening()
+			get_viewport().set_input_as_handled()
+			return
+		captured = true
+	elif event is InputEventMouseButton and event.pressed:
+		captured = true
+	if not captured:
+		return
+	GameSettings.set_binding(_listening_action, event)
+	_listening_button.text = GameSettings.binding_text(_listening_action)
+	_clear_listening()
+	get_viewport().set_input_as_handled()
+
+
+func _clear_listening() -> void:
+	_listening_action = ""
+	_listening_button = null
+
+
+func _on_reset_controls() -> void:
+	GameSettings.reset_bindings()
+	for a in _rebind_rows:
+		_rebind_rows[a].text = GameSettings.binding_text(a)
+
+
 ## Esc bilan ham yopilsin (qulay). Boshqa Esc ishlovchilarga o'tmasin.
 func _unhandled_input(event: InputEvent) -> void:
+	# Rebind kutilayotganda Esc'ni _input bekor qiladi — bu yerga yetmaydi.
 	if event.is_action_pressed("pause") or event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
 		_on_back()

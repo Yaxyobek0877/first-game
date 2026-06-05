@@ -1,23 +1,20 @@
 # -*- coding: utf-8 -*-
 """
-O'yinchi qurollari — yaxshilangan low-poly viewmodel (Avtomat va Snayper), 1-JU uslubi.
+O'yinchi qurollari — realistik low-poly viewmodel (v3): Avtomat = MP18, Snayper = Gewehr 98.
 
-Yaxshilanishlar (v2): silliq quvur/durbin (verts=16), qirralar yumshatilgan (bevel
-modifikatori — chamfer), boyitilgan materiallar (ko'k po'lat sheen + yong'oq + guruch),
-tepki halqasi (torus), ko'proq detal (nishon quloqchalari, magazin tagligi, qisqich, h.k.).
+Tadqiqot asosida (tanib olinadigan siluet):
+  MP18: yumaloq PERFORATSIYALI stvol g'ilofi + tubular qabul + CHAPDA snail drum magazin +
+        miltiq uslubi yog'och qo'ndoq + o'ngda zatvor dastasi. (stik magazin EMAS!)
+  Gewehr 98 snayper: uzun ochiq stvol + to'liq yog'och qo'ndoq/handguard + barrel bands +
+        PASTGA EGILGAN zatvor dastasi + markazda past durbin (halqa/turret).
 
-Har qurol +Y (Blender) tomon "qaraydi" → glTF eksportdan keyin Godot'da -Z (oldinga).
-player.tscn'da Weapon tuguni ostiga qo'yiladi. Umumiy o'lcham/origin saqlangan (viewmodel
-joylashuvi buzilmasin).
-
-Natija:
-  assets/models/avtomat.glb, assets/models/sniper.glb
-  assets/blender/_preview_weapons.png
++Y oldinga (Godot'da -Z), +Z tepa. Natija: avtomat.glb, sniper.glb, _preview_weapons.png
 """
 
 import bpy
 import os
 from math import radians
+from mathutils import Vector
 
 
 def clear_scene():
@@ -43,7 +40,6 @@ _objs = []
 
 
 def _apply_bevel(o, width, segments=2):
-    """Qirralarni yumshatadi (chamfer) — premium low-poly ko'rinish."""
     if width <= 0.0:
         return
     bpy.context.view_layer.objects.active = o
@@ -68,14 +64,14 @@ def box(name, size, loc, material, rot=(0, 0, 0), bev=0.004):
     return o
 
 
-def cyl(name, r, h, loc, material, rot=(0, 0, 0), verts=16, bev=0.0):
+def cyl(name, r, h, loc, material, rot=(0, 0, 0), verts=18, bev=0.0):
     bpy.ops.mesh.primitive_cylinder_add(vertices=verts, radius=r, depth=h, location=loc)
     o = bpy.context.active_object
     o.name = name
     o.rotation_euler = (radians(rot[0]), radians(rot[1]), radians(rot[2]))
     bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
     o.data.materials.append(material)
-    bpy.ops.object.shade_smooth()      # silindrlar silliq soyalanadi
+    bpy.ops.object.shade_smooth()
     _apply_bevel(o, bev)
     _objs.append(o)
     return o
@@ -83,7 +79,7 @@ def cyl(name, r, h, loc, material, rot=(0, 0, 0), verts=16, bev=0.0):
 
 def torus(name, major_r, minor_r, loc, material, rot=(0, 0, 0)):
     bpy.ops.mesh.primitive_torus_add(major_radius=major_r, minor_radius=minor_r, location=loc,
-                                     major_segments=14, minor_segments=7)
+                                     major_segments=16, minor_segments=8)
     o = bpy.context.active_object
     o.name = name
     o.rotation_euler = (radians(rot[0]), radians(rot[1]), radians(rot[2]))
@@ -94,13 +90,7 @@ def torus(name, major_r, minor_r, loc, material, rot=(0, 0, 0)):
     return o
 
 
-def trigger_guard(z_center, y_center, material, w=0.018):
-    """Tepki halqasi — vertikal torus (teshigi X tomon), gun tekisligida."""
-    torus("Guard", 0.032, w * 0.5, (0, y_center, z_center - 0.03), material, rot=(0, 90, 0))
-
-
 def add_hand(gx, gy, gz, glove_mat, sleeve_mat):
-    """Gripda qo'l (glove) + orqaga-pastga cho'zilgan bilak/yeng (kameraga tomon)."""
     box("Glove", (0.085, 0.10, 0.075), (gx, gy, gz), glove_mat, bev=0.02)
     box("Knuckles", (0.085, 0.05, 0.028), (gx, gy + 0.03, gz + 0.05), glove_mat, bev=0.012)
     box("Forearm", (0.075, 0.22, 0.075), (gx, gy - 0.13, gz - 0.07), sleeve_mat, rot=(-26, 0, 0), bev=0.02)
@@ -127,122 +117,116 @@ def join_export(name, glb_name):
 
 
 # ============================================================================
-# AVTOMAT (MP18-uslubidagi avtomat / SMG — tez/zaif)
-# Origin ~ qabul/grip; stvol +Y ga cho'ziladi. Umumiy uzunlik ~ avvalgidek.
+# AVTOMAT = MP18 — yumaloq perforatsiyali g'ilof + snail drum (chapda)
+# Barrel/jacket o'qi z=BZ; +Y oldinga.
 # ============================================================================
 clear_scene()
-A_METAL = mat("A_Metal", (0.11, 0.11, 0.13), rough=0.34, metal=0.85)   # ko'k po'lat (sheen)
-A_DARK = mat("A_Dark", (0.045, 0.045, 0.055), rough=0.5, metal=0.6)    # qora detallar
-A_WOOD = mat("A_Wood", (0.24, 0.13, 0.06), rough=0.55)                  # yong'oq qo'ndoq
-A_WOOD2 = mat("A_Wood2", (0.30, 0.17, 0.08), rough=0.5)                 # ochroq yong'oq
-A_BRASS = mat("A_Brass", (0.55, 0.42, 0.16), rough=0.35, metal=0.9)     # guruch aksent
+A_METAL = mat("A_Metal", (0.17, 0.17, 0.19), rough=0.5, metal=0.7)    # matte gunmetal
+A_DARK = mat("A_Dark", (0.035, 0.035, 0.04), rough=0.6, metal=0.4)    # teshik/qora
+A_WOOD = mat("A_Wood", (0.40, 0.25, 0.12), rough=0.55)                 # yong'oq
+A_WOOD2 = mat("A_Wood2", (0.32, 0.19, 0.09), rough=0.6)
+BZ = 0.02
 
-# Qabul (tubular receiver — yumaloq)
-cyl("Receiver", 0.034, 0.34, (0, 0.06, 0.01), A_METAL, rot=(90, 0, 0))
-box("RecTop", (0.05, 0.30, 0.03), (0, 0.07, 0.05), A_METAL)            # tepa rels (nishonlar uchun)
-# Stvol g'ilofi (perforatsiyali yumaloq jacket — MP18)
-cyl("Shroud", 0.046, 0.20, (0, 0.30, 0.02), A_METAL, rot=(90, 0, 0))
-for yy in [0.24, 0.28, 0.32, 0.36]:                                    # sovutish teshigi halqalari
-    cyl("VentRing", 0.048, 0.014, (0, yy, 0.02), A_DARK, rot=(90, 0, 0))
-# Stvol (g'ilof ichidan chiqib turadi)
-cyl("Barrel", 0.018, 0.40, (0, 0.44, 0.02), A_DARK, rot=(90, 0, 0))
-cyl("MuzzleEnd", 0.024, 0.04, (0, 0.62, 0.02), A_DARK, rot=(90, 0, 0))
+# Tubular qabul (yo'g'onroq, markaz-orqa)
+cyl("Receiver", 0.041, 0.26, (0, 0.03, BZ), A_METAL, rot=(90, 0, 0))    # y -0.10..0.16
+# Perforatsiyali stvol g'ilofi (ingichkaroq, oldinga)
+RJ = 0.036
+cyl("Jacket", RJ, 0.36, (0, 0.37, BZ), A_METAL, rot=(90, 0, 0))         # y 0.19..0.55
+# Teshiklar (yumaloq qora nuqtalar — 3 qator: tepa + ikki yon)
+for k in range(8):
+    yy = 0.23 + k * 0.040
+    cyl("HoleT", 0.009, 0.014, (0, yy, BZ + RJ - 0.003), A_DARK)                       # tepa
+    cyl("HoleR", 0.009, 0.014, (RJ * 0.52, yy, BZ + RJ * 0.86 - 0.003), A_DARK, rot=(0, 32, 0))   # o'ng-tepa
+    cyl("HoleL", 0.009, 0.014, (-RJ * 0.52, yy, BZ + RJ * 0.86 - 0.003), A_DARK, rot=(0, -32, 0))  # chap-tepa
+# Stvol uchi (g'ilofdan chiqadi) + dulnaga
+cyl("Barrel", 0.015, 0.10, (0, 0.58, BZ), A_DARK, rot=(90, 0, 0))
 # Nishonlar
-box("FrontSightBase", (0.05, 0.03, 0.02), (0, 0.52, 0.055), A_DARK, bev=0.003)
-box("FrontSightPost", (0.008, 0.012, 0.04), (0, 0.52, 0.085), A_DARK, bev=0)   # mushka
-box("FrontEarL", (0.008, 0.03, 0.035), (-0.02, 0.52, 0.08), A_DARK, bev=0)     # quloqchalar
-box("FrontEarR", (0.008, 0.03, 0.035), (0.02, 0.52, 0.08), A_DARK, bev=0)
-box("RearSight", (0.05, 0.035, 0.03), (0, -0.04, 0.075), A_DARK, bev=0.003)
-box("RearNotch", (0.012, 0.04, 0.018), (0, -0.04, 0.09), A_METAL, bev=0)
-# Magazin (qiya stik) + tagligi + qisqich
-box("Magazine", (0.038, 0.05, 0.21), (0, 0.04, -0.15), A_DARK, rot=(8, 0, 0))
-box("MagBase", (0.05, 0.06, 0.02), (0, 0.005, -0.255), A_DARK, rot=(8, 0, 0))
-box("MagWell", (0.05, 0.07, 0.05), (0, 0.05, -0.04), A_METAL)
-box("MagCatch", (0.045, 0.025, 0.02), (0, 0.085, -0.06), A_DARK, bev=0.003)
-# Tepki + halqa
-trigger_guard(-0.075, -0.02, A_METAL)
-box("Trigger", (0.012, 0.018, 0.04), (0, -0.02, -0.085), A_DARK, bev=0.003)
-# Tutqich (yong'och) + grip plitalari
-box("Grip", (0.042, 0.05, 0.12), (0, -0.075, -0.075), A_WOOD, rot=(20, 0, 0))
-# Qo'ndoq (to'liq yog'och) + butt plitasi
-box("Stock", (0.05, 0.24, 0.075), (0, -0.24, -0.015), A_WOOD)
-box("StockComb", (0.045, 0.14, 0.03), (0, -0.20, 0.04), A_WOOD2, bev=0.006)    # tepa qirra
-box("ButtPlate", (0.055, 0.022, 0.10), (0, -0.36, -0.015), A_DARK)
-# Oldingi yog'och handguard
-box("Handguard", (0.05, 0.12, 0.05), (0, 0.16, -0.05), A_WOOD, rot=(2, 0, 0))
-# Zatvor dastasi (o'ng) + gilza chiqargich
-cyl("ChargeHandle", 0.016, 0.05, (0.05, 0.02, 0.06), A_DARK, rot=(0, 90, 0))
-box("EjectPort", (0.012, 0.07, 0.03), (0.035, 0.14, 0.045), A_DARK, bev=0.003)
-# Sling halqalari (detal)
-torus("SlingF", 0.014, 0.004, (0, 0.30, -0.04), A_DARK, rot=(0, 90, 0))
-torus("SlingR", 0.014, 0.004, (0, -0.30, -0.05), A_DARK, rot=(0, 90, 0))
-A_GLOVE = mat("A_Glove", (0.15, 0.11, 0.07), rough=0.7)
+box("FrontSight", (0.008, 0.022, 0.026), (0, 0.55, BZ + RJ + 0.005), A_DARK, bev=0)
+box("RearSight", (0.034, 0.022, 0.022), (0, -0.04, BZ + 0.05), A_DARK, bev=0.002)
+
+# Snail drum magazin (CHAPDA, yumaloq yassi baraban — MP18 belgisi)
+box("MagNeck", (0.05, 0.05, 0.05), (-0.035, 0.07, BZ - 0.045), A_METAL, bev=0.004)
+cyl("Drum", 0.07, 0.034, (-0.075, 0.05, BZ - 0.085), A_DARK, rot=(0, 90, 0), bev=0.004)   # disk (o'q X)
+cyl("DrumHub", 0.022, 0.04, (-0.075, 0.05, BZ - 0.085), A_METAL, rot=(0, 90, 0))           # markaz tugma
+cyl("DrumRim", 0.062, 0.04, (-0.075, 0.05, BZ - 0.085), A_METAL, rot=(0, 90, 0))           # ободок
+
+# Zatvor dastasi (O'NGDA)
+cyl("BoltKnob", 0.016, 0.055, (0.05, 0.0, BZ + 0.01), A_DARK, rot=(0, 90, 0))
+
+# Tetik + halqa (qabul ostida)
+torus("Guard", 0.03, 0.008, (0, -0.05, BZ - 0.07), A_METAL, rot=(0, 90, 0))
+box("Trigger", (0.011, 0.016, 0.038), (0, -0.045, BZ - 0.055), A_DARK, bev=0.003)
+
+# Yog'och: oldingi forend (g'ilof tagida, qabul oldi) + qo'ndoq wrist + but
+box("Forend", (0.05, 0.13, 0.06), (0, 0.21, BZ - 0.05), A_WOOD)
+box("Wrist", (0.046, 0.16, 0.06), (0, -0.14, BZ - 0.035), A_WOOD, rot=(6, 0, 0))      # qo'ndoq bo'yni
+box("Butt", (0.052, 0.15, 0.115), (0, -0.30, BZ - 0.075), A_WOOD, rot=(10, 0, 0))     # but (pastga qiya)
+box("ButtPlate", (0.057, 0.022, 0.12), (0, -0.375, BZ - 0.095), A_DARK)
+box("Comb", (0.046, 0.12, 0.03), (0, -0.22, BZ + 0.02), A_WOOD2, bev=0.006)           # tepa qirra
+
+A_GLOVE = mat("A_Glove", (0.16, 0.12, 0.08), rough=0.7)
 A_SLEEVE = mat("A_Sleeve", (0.40, 0.34, 0.22), rough=0.85)
-add_hand(0.0, -0.05, -0.095, A_GLOVE, A_SLEEVE)   # tutqich (trigger) qo'li
-add_hand(0.0, 0.17, -0.075, A_GLOVE, A_SLEEVE)    # oldingi (handguard) qo'l
+add_hand(0.0, -0.06, BZ - 0.085, A_GLOVE, A_SLEEVE)   # tetik (wrist) qo'li
+add_hand(0.0, 0.21, BZ - 0.085, A_GLOVE, A_SLEEVE)    # oldingi (forend) qo'l
 avtomat = join_export("Avtomat", "avtomat.glb")
 
 # ============================================================================
-# SNAYPER (Mosin/Gewehr-uslubidagi — durbin bilan, sekin/kuchli, uzoq masofa)
+# SNAYPER = Gewehr 98 — ochiq stvol + to'liq yog'och + pastga egilgan zatvor + durbin
 # ============================================================================
 clear_scene()
-S_METAL = mat("S_Metal", (0.10, 0.10, 0.12), rough=0.32, metal=0.85)
+S_METAL = mat("S_Metal", (0.09, 0.09, 0.11), rough=0.34, metal=0.85)   # blued qora
 S_DARK = mat("S_Dark", (0.04, 0.04, 0.05), rough=0.5, metal=0.6)
-S_WOOD = mat("S_Wood", (0.21, 0.11, 0.05), rough=0.55)
-S_WOOD2 = mat("S_Wood2", (0.27, 0.15, 0.07), rough=0.5)
+S_WOOD = mat("S_Wood", (0.34, 0.20, 0.09), rough=0.55)                  # yong'oq
+S_WOOD2 = mat("S_Wood2", (0.28, 0.16, 0.07), rough=0.5)
 S_LENS = mat("S_Lens", (0.22, 0.45, 0.68), rough=0.08, metal=0.4)
-S_BRASS = mat("S_Brass", (0.55, 0.42, 0.16), rough=0.35, metal=0.9)
+SZ = 0.035
 
-# To'liq yog'och qo'ndoq (uzun) + yonoq + handguard
-box("Stock", (0.05, 0.70, 0.105), (0, -0.04, -0.025), S_WOOD)
-box("Comb", (0.046, 0.22, 0.05), (0, -0.20, 0.04), S_WOOD2, bev=0.006)        # yonoq qirra
-box("Forestock", (0.05, 0.52, 0.07), (0, 0.40, -0.01), S_WOOD)               # oldingi yog'och
-box("Handguard", (0.044, 0.40, 0.04), (0, 0.44, 0.045), S_WOOD2, bev=0.005)  # stvol usti yog'och
-box("ButtPlate", (0.055, 0.02, 0.12), (0, -0.40, -0.02), S_DARK)
-# Stvol (uzun, ingichka, silliq) + dulnaga + barrel bandlar
-cyl("Barrel", 0.015, 0.92, (0, 0.56, 0.035), S_DARK, rot=(90, 0, 0))
-cyl("Muzzle", 0.022, 0.05, (0, 1.0, 0.035), S_DARK, rot=(90, 0, 0))
-cyl("BandF", 0.03, 0.03, (0, 0.66, 0.02), S_METAL, rot=(90, 0, 0))           # stvol bandi
-cyl("BandR", 0.03, 0.03, (0, 0.30, 0.02), S_METAL, rot=(90, 0, 0))
-# Qabul + zatvor (egilgan dasta) + tepki
-box("Receiver", (0.05, 0.24, 0.075), (0, 0.06, 0.03), S_METAL)
-cyl("BoltBody", 0.018, 0.16, (0, 0.04, 0.06), S_METAL, rot=(90, 0, 0))
-cyl("BoltArm", 0.013, 0.10, (0.06, -0.02, 0.05), S_METAL, rot=(0, 50, 0))    # pastga egilgan
-cyl("BoltKnob", 0.026, 0.03, (0.10, -0.05, 0.04), S_DARK, rot=(0, 50, 0))    # sharcha
-# Magazin qutisi (pastda) + floorplate
-box("MagBox", (0.05, 0.1, 0.05), (0, 0.0, -0.05), S_METAL, bev=0.004)
-box("FloorPlate", (0.055, 0.11, 0.018), (0, 0.0, -0.08), S_DARK)
-# Tepki + halqa
-trigger_guard(-0.07, -0.02, S_METAL, w=0.016)
-box("Trigger", (0.012, 0.016, 0.045), (0, -0.02, -0.075), S_DARK, bev=0.003)
-# Tutqich (wrist) — qo'ndoq bo'yni
-box("Grip", (0.042, 0.07, 0.085), (0, -0.06, -0.055), S_WOOD, rot=(14, 0, 0))
-# Old nishon (durbin bilan, lekin baribir mushka)
-box("FrontSight", (0.04, 0.025, 0.02), (0, 0.94, 0.055), S_DARK, bev=0.003)
-# Durbin (scope) — tirgaklarda, halqali, turret bilan
-box("ScopeMountF", (0.028, 0.03, 0.075), (0, 0.20, 0.10), S_DARK, bev=0.003)
-box("ScopeMountR", (0.028, 0.03, 0.075), (0, -0.06, 0.10), S_DARK, bev=0.003)
-torus("RingF", 0.04, 0.008, (0, 0.20, 0.145), S_METAL, rot=(90, 0, 0))       # halqa
-torus("RingR", 0.04, 0.008, (0, -0.06, 0.145), S_METAL, rot=(90, 0, 0))
-cyl("ScopeTube", 0.032, 0.40, (0, 0.07, 0.145), S_DARK, rot=(90, 0, 0))
-cyl("ScopeFront", 0.05, 0.07, (0, 0.27, 0.145), S_DARK, rot=(90, 0, 0))      # old ob'ektiv
-cyl("ScopeRear", 0.046, 0.07, (0, -0.14, 0.145), S_DARK, rot=(90, 0, 0))     # ko'z qismi
-cyl("LensF", 0.044, 0.012, (0, 0.305, 0.145), S_LENS, rot=(90, 0, 0))
-cyl("LensR", 0.039, 0.012, (0, -0.175, 0.145), S_LENS, rot=(90, 0, 0))
-cyl("Turret", 0.022, 0.04, (0, 0.07, 0.185), S_DARK)                         # tepa turret
-cyl("TurretCap", 0.018, 0.02, (0, 0.07, 0.21), S_METAL)
-# Sling halqalari
-torus("SlingF", 0.014, 0.004, (0, 0.66, -0.03), S_DARK, rot=(0, 90, 0))
-torus("SlingR", 0.014, 0.004, (0, -0.34, -0.05), S_DARK, rot=(0, 90, 0))
-S_GLOVE = mat("S_Glove", (0.15, 0.11, 0.07), rough=0.7)
+# To'liq yog'och qo'ndoq (past chiziq) + handguard (stvol usti, qisman)
+box("Stock", (0.052, 0.70, 0.10), (0, -0.02, SZ - 0.06), S_WOOD)
+box("Comb", (0.048, 0.20, 0.05), (0, -0.20, SZ + 0.01), S_WOOD2, bev=0.006)
+box("Forestock", (0.052, 0.46, 0.075), (0, 0.40, SZ - 0.04), S_WOOD)
+box("Handguard", (0.046, 0.34, 0.04), (0, 0.42, SZ + 0.03), S_WOOD2, bev=0.005)
+box("ButtPlate", (0.057, 0.02, 0.12), (0, -0.40, SZ - 0.075), S_DARK)
+# Uzun OCHIQ stvol (old qismi yog'ochdan tashqarida) + dulnaga + barrel bands
+cyl("Barrel", 0.014, 0.92, (0, 0.56, SZ + 0.005), S_DARK, rot=(90, 0, 0))
+cyl("Muzzle", 0.02, 0.05, (0, 1.0, SZ + 0.005), S_DARK, rot=(90, 0, 0))
+cyl("BandF", 0.03, 0.03, (0, 0.66, SZ - 0.02), S_METAL, rot=(90, 0, 0))
+cyl("BandR", 0.03, 0.03, (0, 0.30, SZ - 0.02), S_METAL, rot=(90, 0, 0))
+# Qabul + PASTGA EGILGAN zatvor dastasi (snayper belgisi)
+box("Receiver", (0.05, 0.24, 0.07), (0, 0.05, SZ), S_METAL)
+cyl("BoltBody", 0.017, 0.16, (0, 0.03, SZ + 0.03), S_METAL, rot=(90, 0, 0))
+cyl("BoltArm", 0.012, 0.11, (0.055, -0.04, SZ - 0.02), S_METAL, rot=(35, 0, 0))     # pastga egilgan
+cyl("BoltKnob", 0.024, 0.028, (0.075, -0.10, SZ - 0.05), S_DARK)                    # sharcha (pastda)
+# Magazin qutisi (pastda) + spusk
+box("MagBox", (0.05, 0.10, 0.05), (0, -0.01, SZ - 0.055), S_METAL, bev=0.004)
+box("FloorPlate", (0.055, 0.11, 0.018), (0, -0.01, SZ - 0.085), S_DARK)
+torus("Guard", 0.03, 0.008, (0, -0.08, SZ - 0.07), S_METAL, rot=(0, 90, 0))
+box("Trigger", (0.012, 0.016, 0.045), (0, -0.08, SZ - 0.055), S_DARK, bev=0.003)
+# Semi-pistol grip (qo'ndoq bo'yni yengil egilish)
+box("Grip", (0.044, 0.08, 0.08), (0, -0.10, SZ - 0.07), S_WOOD, rot=(16, 0, 0))
+# Nishonlar
+box("FrontSight", (0.04, 0.025, 0.03), (0, 0.95, SZ + 0.03), S_DARK, bev=0.002)
+box("RearSight", (0.05, 0.06, 0.018), (0, 0.20, SZ + 0.04), S_DARK, bev=0.002)
+# Durbin (markazda, past — halqa + turret)
+box("ScopeMountF", (0.026, 0.03, 0.06), (0, 0.18, SZ + 0.075), S_DARK, bev=0.003)
+box("ScopeMountR", (0.026, 0.03, 0.06), (0, -0.05, SZ + 0.075), S_DARK, bev=0.003)
+torus("RingF", 0.036, 0.008, (0, 0.18, SZ + 0.115), S_METAL, rot=(90, 0, 0))
+torus("RingR", 0.036, 0.008, (0, -0.05, SZ + 0.115), S_METAL, rot=(90, 0, 0))
+cyl("ScopeTube", 0.03, 0.38, (0, 0.06, SZ + 0.115), S_DARK, rot=(90, 0, 0))
+cyl("ScopeFront", 0.046, 0.07, (0, 0.25, SZ + 0.115), S_DARK, rot=(90, 0, 0))
+cyl("ScopeRear", 0.043, 0.07, (0, -0.12, SZ + 0.115), S_DARK, rot=(90, 0, 0))
+cyl("LensF", 0.04, 0.012, (0, 0.285, SZ + 0.115), S_LENS, rot=(90, 0, 0))
+cyl("LensR", 0.036, 0.012, (0, -0.155, SZ + 0.115), S_LENS, rot=(90, 0, 0))
+cyl("Turret", 0.02, 0.038, (0, 0.06, SZ + 0.15), S_DARK)
+S_GLOVE = mat("S_Glove", (0.16, 0.12, 0.08), rough=0.7)
 S_SLEEVE = mat("S_Sleeve", (0.40, 0.34, 0.22), rough=0.85)
-add_hand(0.0, -0.02, -0.06, S_GLOVE, S_SLEEVE)    # tepki qo'li
-add_hand(0.0, 0.40, -0.02, S_GLOVE, S_SLEEVE)     # oldingi (forestock) qo'l
+add_hand(0.0, -0.08, SZ - 0.10, S_GLOVE, S_SLEEVE)    # tetik qo'li
+add_hand(0.0, 0.40, SZ - 0.07, S_GLOVE, S_SLEEVE)     # oldingi qo'l
 sniper = join_export("Snayper", "sniper.glb")
 
 
 # ============================================================================
-# PREVIEW: ikkala qurol yonma-yon
+# PREVIEW: ikkala qurol yonma-yon (CHAP tomondan — MP18 drumini ko'rsatish uchun)
 # ============================================================================
 clear_scene()
 a_dir = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "models"))
@@ -259,16 +243,13 @@ def import_glb(path, dx):
 import_glb(os.path.join(a_dir, "avtomat.glb"), -0.5)
 import_glb(os.path.join(a_dir, "sniper.glb"), 0.5)
 
-bpy.ops.object.empty_add(location=(0, 0.1, 0))
-target = bpy.context.active_object
-bpy.ops.object.camera_add(location=(0.7, -1.4, 0.6))
+_cam_loc = (-0.95, -1.75, 0.7)   # chap-old (MP18 drumini ko'rsatish uchun)
+bpy.ops.object.camera_add(location=_cam_loc)
 cam = bpy.context.active_object
-cam.data.lens = 52
+cam.data.lens = 40
 bpy.context.scene.camera = cam
-c = cam.constraints.new('TRACK_TO')
-c.target = target
-c.track_axis = 'TRACK_NEGATIVE_Z'
-c.up_axis = 'UP_Y'
+_d = Vector((0.0, 0.12, 0.0)) - Vector(_cam_loc)
+cam.rotation_euler = _d.to_track_quat('-Z', 'Y').to_euler()
 bpy.ops.object.light_add(type='SUN', location=(2, -2, 4))
 bpy.context.active_object.data.energy = 4.5
 bpy.context.active_object.rotation_euler = (radians(50), radians(10), radians(30))
@@ -278,8 +259,8 @@ scene.render.engine = 'BLENDER_WORKBENCH'
 scene.display.shading.color_type = 'MATERIAL'
 scene.display.shading.light = 'STUDIO'
 scene.display.shading.show_shadows = True
-scene.render.resolution_x = 900
-scene.render.resolution_y = 540
+scene.render.resolution_x = 960
+scene.render.resolution_y = 560
 world = bpy.data.worlds[0] if bpy.data.worlds else bpy.data.worlds.new("World")
 scene.world = world
 world.use_nodes = True

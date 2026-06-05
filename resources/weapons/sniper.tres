@@ -8,6 +8,7 @@ display_name = "Snayper"
 damage = 90.0
 fire_rate = 1.1
 max_ammo = 5
+magazines = 6
 auto_fire = false
 spread = 0.0
 max_range = 1500.0
