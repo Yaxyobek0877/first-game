@@ -19,6 +19,7 @@ var _wood: StandardMaterial3D
 var _metal: StandardMaterial3D
 var _dark: StandardMaterial3D
 var _dirt: StandardMaterial3D
+var _sand: StandardMaterial3D    ## Qum-qop transheya parapeti rangi
 
 
 func _ready() -> void:
@@ -36,6 +37,7 @@ func _make_materials() -> void:
 	_metal = _mat(Color(0.30, 0.32, 0.34), 0.5, 0.4)
 	_dark = _mat(Color(0.12, 0.12, 0.13), 0.7, 0.2)
 	_dirt = _mat(Color(0.18, 0.13, 0.08), 1.0, 0.0)
+	_sand = _mat(Color(0.46, 0.40, 0.28), 1.0, 0.0)
 
 
 func _mat(color: Color, rough: float, metal: float) -> StandardMaterial3D:
@@ -65,6 +67,13 @@ func _build_details() -> void:
 	# Qum-qop past devorlar (o'yinchiga oldinda pana) — collision + nav-to'siq.
 	_low_wall(Vector3(-6, 0, 13), Vector3(4.5, 1.1, 1.2))
 	_low_wall(Vector3(6, 0, 13), Vector3(4.5, 1.1, 1.2))
+
+	# Transheya (qum-qop parapet chiziqlari) — o'yinchi VA botlar uchun pana/otish chizig'i.
+	# Markaziy yo'lak ochiq qoldiriladi (gameplay). Nav-to'siq bilan — dushmanlar aylanadi.
+	_trench(Vector3(-10, 0, 7), Vector3(8.0, 1.05, 0.7))    # old-g'arb chiziq (markazda bo'shliq)
+	_trench(Vector3(10, 0, 7), Vector3(8.0, 1.05, 0.7))     # old-sharq chiziq
+	_trench(Vector3(-13, 0, -3), Vector3(0.7, 1.05, 9.0))   # g'arb flang chizig'i (Z bo'ylab)
+	_trench(Vector3(13, 0, -3), Vector3(0.7, 1.05, 9.0))    # sharq flang chizig'i
 
 
 ## Kuzatuv minorasi: 4 oyoq + platforma + panjara + (baland) tom + NARVON.
@@ -220,6 +229,18 @@ func _low_wall(pos: Vector3, size: Vector3) -> void:
 	add_child(body)
 	_add_collision(body, size, pos + Vector3(0, size.y * 0.5, 0))
 	_nav_obstacle(size + Vector3(0.4, 2.0, 0.4), pos + Vector3(0, 1.0, 0))
+
+
+## Transheya parapeti — _low_wall kabi (ko'rinish + collision + nav-to'siq), qum-qop rangida.
+## Pana sifatida ham o'yinchi, ham botlar foydalanadi (otish chizig'i).
+func _trench(pos: Vector3, size: Vector3) -> void:
+	_mesh_box(self, size, pos + Vector3(0, size.y * 0.5, 0), _sand)
+	var body := StaticBody3D.new()
+	body.collision_layer = 1
+	body.collision_mask = 0
+	add_child(body)
+	_add_collision(body, size, pos + Vector3(0, size.y * 0.5, 0))
+	_nav_obstacle(size + Vector3(0.5, 2.0, 0.5), pos + Vector3(0, 1.0, 0))
 
 
 # --- Past darajali yordamchilar ---
