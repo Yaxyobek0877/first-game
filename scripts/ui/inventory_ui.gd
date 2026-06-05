@@ -122,7 +122,8 @@ func _refresh() -> void:
 	for c in _grenades_box.get_children():
 		c.queue_free()
 	var counts: Dictionary = {}
-	var gt := get_tree().current_scene.get_node_or_null("GrenadeThrower")
+	# InventoryUI Main'ning bolasi — GrenadeThrower esa uning sherigi (sibling).
+	var gt := get_parent().get_node_or_null("GrenadeThrower")
 	if gt != null and gt.has_method("get_counts"):
 		counts = gt.get_counts()
 	for k in ["frag", "smoke", "flash"]:
