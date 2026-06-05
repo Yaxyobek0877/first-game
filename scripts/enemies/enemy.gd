@@ -66,6 +66,10 @@ enum State { GUARD, PATROL, INVESTIGATE, ENGAGE, ADVANCE, RETURN, ATTACK, DEAD }
 # --- Navigatsiya throttle ---
 @export var repath_interval: float = 0.35    ## Yo'lni shu intervalda qayta hisoblaydi (har kadr emas)
 
+# --- Minora snayperi / granata ---
+@export var tower_sniper: bool = false   ## Minora tepasida turadi — joyidan jilmaydi (faqat aylanadi/otadi)
+@export var grenades: int = 0            ## Granata zaxirasi (assault/flanker'da oz miqdorda)
+
 # --- O'lim/jasad ---
 @export var corpse_lifetime: float = 12.0
 
@@ -96,6 +100,7 @@ var _strafe_sign: float = 1.0
 var _strafe_flip_t: float = 0.0
 var _strafe_collide_cd: float = 0.0   ## To'qnashuvda strafe almashishi orasidagi sovish (jitter oldini oladi)
 var _aggressive: bool = false         ## Wave failsafe: leash bekor, o'yinchiga to'g'ridan-to'g'ri "bosqin"
+var _grenade_cd: float = 0.0          ## Granata tashlash orasidagi sovish (s)
 
 @onready var nav: NavigationAgent3D = $NavigationAgent3D
 @onready var collision_shape: CollisionShape3D = $CollisionShape3D
@@ -128,6 +133,11 @@ func _ready() -> void:
 	_strafe_sign = 1.0 if randf() < 0.5 else -1.0
 	if role == Role.FLANKER and flank_side == 0:
 		flank_side = 1 if randf() < 0.5 else -1
+	# Granata faqat bir qism askarda qolsin (kam bo'lsin) + qisqa boshlang'ich sovish
+	# (yetib kelmasdan, masofadan uloqtirsin).
+	if grenades > 0 and randf() > 0.5:
+		grenades = 0
+	_grenade_cd = randf_range(0.5, 2.0)
 	attack_timer.wait_time = attack_cooldown
 	# Model animatsiyalari ("walk"/"aim"/"alert" bo'lmasa — fallback bilan ishlaydi).
 	_anim = model.find_child("AnimationPlayer", true, false) as AnimationPlayer
@@ -169,11 +179,16 @@ func _apply_role_tunables() -> void:
 			min_standoff = 16.0
 			leash_range = 10.0
 			engage_range = 44.0
+			vision_range = 46.0     # snayper uzoqni ko'radi (minoradan)
 			move_speed *= 0.85
+			if tower_sniper:
+				vision_fov_deg = 230.0   # minoradan keng kuzatadi (atrofni qamrab oladi)
 		Role.ASSAULT:
 			leash_range = 99999.0   # butun arena — postga bog'lanmagan
+			grenades = 1            # bitta granata (oz)
 		Role.FLANKER:
 			leash_range = 99999.0
+			grenades = 1
 
 
 func _initial_state() -> State:
@@ -321,6 +336,10 @@ func _do_engage(delta: float) -> void:
 	var ppos: Vector3 = _player.global_position
 	var dist: float = _dist_to_player()
 
+	# Granatasi bo'lsa — qulay masofada o'yinchiga uloqtirishi mumkin.
+	if grenades > 0:
+		_try_grenade(dist)
+
 	if is_ranged:
 		# Ko'rinmasa yoki uzoq — yaxshiroq joy izlash uchun siljiydi.
 		if not _los_cached or dist > ranged_range:
@@ -349,6 +368,8 @@ func _do_engage(delta: float) -> void:
 ## Postga (ranged) / o'yinchiga (assault) / qanotga (flanker) siljiydi.
 func _do_advance(delta: float) -> void:
 	var dist: float = _dist_to_player()
+	if grenades > 0 and _can_see_player:
+		_try_grenade(dist)
 	if _can_see_player:
 		if is_ranged:
 			if _los_cached and dist <= ranged_range:
@@ -489,6 +510,8 @@ func _move_toward_goal(goal: Vector3, speed: float, delta: float) -> Vector3:
 
 ## Ranged: masofa saqlab yon tomonga strafe qiladi (ideal_range atrofida tursin).
 func _ranged_desired_vel(player_pos: Vector3, dist: float, delta: float) -> Vector3:
+	if tower_sniper:
+		return Vector3.ZERO   # minora snayperi joyidan jilmaydi (faqat aylanadi/otadi)
 	_strafe_flip_t -= delta
 	if _strafe_flip_t <= 0.0:
 		_strafe_flip_t = randf_range(1.5, 3.0)
@@ -526,6 +549,43 @@ func _flank_target() -> Vector3:
 	if right.length() < 0.01:
 		right = Vector3.RIGHT
 	return _player.global_position + right.normalized() * float(flank_side) * 8.0
+
+
+## Granata: qulay masofada (LOS bilan) o'yinchiga uloqtiradi. Limitli (grenades soni).
+func _try_grenade(dist: float) -> bool:
+	if grenades <= 0 or _grenade_cd > 0.0:
+		return false
+	if dist < 8.0 or dist > 22.0:
+		return false
+	if not _los_cached or not is_instance_valid(_player):
+		return false
+	_throw_grenade()
+	grenades -= 1
+	_grenade_cd = 7.0
+	return true
+
+
+## Granata snaryadini hosil qilib o'yinchiga balistik yoy bilan uloqtiradi (mavjud tizim).
+func _throw_grenade() -> void:
+	if not ResourceLoader.exists("res://scenes/fx/grenade.tscn"):
+		return
+	var origin: Vector3 = global_position + Vector3(0, 1.3, 0) - global_transform.basis.z * 0.5
+	var target: Vector3 = _player.global_position if is_instance_valid(_player) else _last_known_pos
+	var to: Vector3 = target - origin
+	var hdir: Vector3 = Vector3(to.x, 0.0, to.z)
+	var d: float = hdir.length()
+	if d < 0.3:
+		return
+	hdir = hdir.normalized()
+	var g: Node3D = (load("res://scenes/fx/grenade.tscn") as PackedScene).instantiate()
+	g.grenade_type = "frag"
+	g.position = origin   # current_scene (Main) ildizda — local = global
+	get_tree().current_scene.add_child(g)
+	var h_speed: float = clampf(d * 0.75, 6.0, 15.0)
+	g.linear_velocity = hdir * h_speed + Vector3.UP * 4.0
+	g.angular_velocity = Vector3(randf_range(-5, 5), randf_range(-5, 5), randf_range(-5, 5))
+	if _anim != null and _anim.has_animation("attack"):
+		_anim.play("attack")
 
 
 ## Oxirgi ko'rilgan joy ma'lum bo'lsa — o'sha; aks holda o'yinchining hozirgi joyi.
@@ -579,6 +639,8 @@ func _separation() -> Vector3:
 
 func _update_perception(delta: float) -> void:
 	_time_since_seen += delta
+	if _grenade_cd > 0.0:
+		_grenade_cd -= delta
 	_percept_accum -= delta
 	if _percept_accum > 0.0:
 		return
@@ -647,8 +709,8 @@ func _leashed() -> bool:
 ## o'tadi (leash bekor, to'g'ridan-to'g'ri o'yinchiga yuradi). Garnizon hissi boshda saqlanadi,
 ## lekin wave doim tugaydi va o'yinchi hech qachon "bo'sh maydon"da yolg'iz qolmaydi.
 func go_aggressive() -> void:
-	if _state == State.DEAD or _aggressive:
-		return
+	if _state == State.DEAD or _aggressive or tower_sniper:
+		return   # minora snayperi "bosqin"da ham joyida qoladi (tushib ketmaydi)
 	_aggressive = true
 	leash_range = 99999.0
 	if is_instance_valid(_player):
@@ -735,7 +797,9 @@ func _spawn_impact(pos: Vector3) -> void:
 func _has_line_of_sight() -> bool:
 	if not is_instance_valid(_player):
 		return false
-	var from: Vector3 = global_position + Vector3(0, 1.4, 0)
+	# Minora snayperi ko'zlari balandroq — o'z panjarasi nurni to'smasin (pastga qaraydi).
+	var eye_h: float = 1.9 if tower_sniper else 1.4
+	var from: Vector3 = global_position + Vector3(0, eye_h, 0)
 	var to: Vector3 = _player.global_position + Vector3(0, 1.2, 0)
 	var space := get_world_3d().direct_space_state
 	var q := PhysicsRayQueryParameters3D.create(from, to)
@@ -824,11 +888,16 @@ func take_damage(amount: float) -> void:
 	health -= amount
 	_flash()
 	_blood_burst()
-	# O'q tekkani — qayerdan otilganini taxminan bildiradi (o'yinchini topadi).
+	# O'q tekkani — qayerdan otilganini bildiradi. ORQADAN otilsa ham DARROV sezadi:
+	# o'sha tomonga buriladi (qarab qotib qolmaydi) va jangga kiradi (har qanday holatdan).
 	if is_instance_valid(_player):
 		_last_known_pos = _player.global_position
 		_time_since_seen = 0.0
-		if _state == State.GUARD or _state == State.PATROL or _state == State.RETURN:
+		var to: Vector3 = _player.global_position - global_position
+		to.y = 0.0
+		if to.length() > 0.1:
+			_face_yaw = _yaw_from_dir(to)   # darrov shu tomonga buriladi (tez turn)
+		if _state != State.ENGAGE and _state != State.ATTACK:
 			_enter_state(State.ENGAGE)
 	if health <= 0.0:
 		_die()

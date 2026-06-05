@@ -35,7 +35,12 @@ const GUARD_POSTS: Array[Vector3] = [
 	Vector3(-9, 0, -12),   # g'arb 2x2
 	Vector3(0, 0, 0),      # markaz 2x2 — "obyekt"
 ]
-## Snayper (overwatch) postlari — baland/uzoq burchaklar.
+## Minora tepasidagi snayper postlari (platforma sirti ~5.15 — ozgina yuqoridan tushadi).
+const TOWER_POSTS: Array[Vector3] = [
+	Vector3(19, 5.3, -2),
+	Vector3(-19, 5.3, -2),
+]
+## Snayper (overwatch) postlari — baland/uzoq burchaklar (minoralar to'lsa, yerdagi zaxira).
 const MARKSMAN_POSTS: Array[Vector3] = [
 	Vector3(17, 0, -15),   # shimoli-sharq 3x3
 	Vector3(-17, 0, -15),  # shimoli-g'arb 3x3
@@ -94,6 +99,7 @@ func _start_wave() -> void:
 	var roles: Array = _composition(_wave, count)
 	# Postlarni taqsimlash uchun nusxalar (pop bilan — ikkitasi bir postga tushmasin).
 	var guard_posts: Array = GUARD_POSTS.duplicate()
+	var tower_posts: Array = TOWER_POSTS.duplicate()
 	var marksman_posts: Array = MARKSMAN_POSTS.duplicate()
 	var patrol_n: int = 0
 	var spawn_n: int = 0
@@ -107,7 +113,15 @@ func _start_wave() -> void:
 				e.position = post
 				e.guard_position = post
 			Enemy.Role.MARKSMAN:
-				var mp: Vector3 = marksman_posts.pop_front() if not marksman_posts.is_empty() else MARKSMAN_POSTS[i % MARKSMAN_POSTS.size()]
+				# Avval MINORA tepasini egallaydi (snayper o'sha yerda turadi); to'lsa — yerdagi post.
+				var mp: Vector3
+				if not tower_posts.is_empty():
+					mp = tower_posts.pop_front()
+					e.tower_sniper = true
+				elif not marksman_posts.is_empty():
+					mp = marksman_posts.pop_front()
+				else:
+					mp = MARKSMAN_POSTS[i % MARKSMAN_POSTS.size()]
 				e.position = mp
 				e.guard_position = mp
 			Enemy.Role.PATROL:
