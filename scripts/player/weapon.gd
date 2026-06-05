@@ -18,6 +18,8 @@ extends Node3D
 var _current_index: int = 0
 ## Har qurolning O'Z magazini. Indeks `weapons` bilan bir xil tartibda.
 var _ammo_counts: Array[int] = []
+## Har qurolning zaxira magazinlari soni. Reload bittasini kamaytiradi; 0 da reload yo'q.
+var _mag_counts: Array[int] = []
 var _cooldown: float = 0.0             ## Keyingi otishgacha qolgan vaqt
 
 # --- Viewmodel animatsiyasi (recoil / equip / bob) ---
@@ -67,10 +69,12 @@ func _ready() -> void:
 			load("res://resources/weapons/sniper.tres"),    # Snayper (sekin/kuchli, durbin)
 		]
 
-	# Har bir qurol uchun magazinni to'la qilib boshlaymiz.
+	# Har bir qurol uchun magazinni to'la + zaxira magazinlarni boshlaymiz.
 	_ammo_counts.resize(weapons.size())
+	_mag_counts.resize(weapons.size())
 	for i in weapons.size():
 		_ammo_counts[i] = weapons[i].max_ammo
+		_mag_counts[i] = weapons[i].magazines
 
 	# Nur o'yinchining o'z tanasiga tegib qolmasligi uchun uni istisno qilamiz.
 	var body: Node = get_parent()
@@ -83,6 +87,12 @@ func _ready() -> void:
 	# kapsulani (enemy=4) emas — shu sabab tana qismini aniqlab, headshot beramiz.
 	ray.collide_with_areas = true
 	ray.collision_mask = 1 | (1 << 4)   # world(1) + hitbox(16) = 17
+
+	# Yerdan o'q-dori olinganda — joriy qurolning zaxira magazini oshadi (decoupled).
+	Events.ammo_pickup.connect(func(mags: int) -> void:
+		if _current_index >= 0 and _current_index < _mag_counts.size():
+			_mag_counts[_current_index] += mags
+			Events.mags_changed.emit(_mag_counts[_current_index]))
 
 	# Otish tovushi pleyeri (WAV — protsedural SFX). "SFX" shinasiga ulanadi.
 	# Stream faol qurolga qarab _apply_active_weapon'da o'rnatiladi.
@@ -141,6 +151,10 @@ func _process(delta: float) -> void:
 	if wants_to_fire and _cooldown <= 0.0 and _ammo_counts[_current_index] > 0 and not _reloading:
 		_shoot()
 
+	# O'q tugaganda — AVTOMATIK qayta o'qlash (zaxira magazin bo'lsa). R bosish shart emas.
+	if _ammo_counts[_current_index] <= 0 and not _reloading and _mag_counts[_current_index] > 0:
+		_start_reload()
+
 	if Input.is_action_just_pressed("reload"):
 		_start_reload()
 
@@ -184,6 +198,7 @@ func _apply_active_weapon() -> void:
 		return
 	var w: Resource = _active()
 	Events.ammo_changed.emit(_ammo_counts[_current_index], w.max_ammo)
+	Events.mags_changed.emit(_mag_counts[_current_index])
 	Events.weapon_changed.emit(w.display_name)
 	# Faol qurolning otish tovushini o'rnatamiz (topponcha/avtomat farqli).
 	if _shot_player != null and w.sfx_path != "":
@@ -342,6 +357,8 @@ func _start_reload() -> void:
 	var w: Resource = _active()
 	if _ammo_counts[_current_index] >= w.max_ammo:
 		return   # magazin to'la — kerak emas
+	if _mag_counts[_current_index] <= 0:
+		return   # zaxira magazin qolmadi — reload yo'q
 	_reloading = true
 	_reload_t = 0.0
 	_reload_gen += 1
@@ -355,9 +372,12 @@ func _reload(w: Resource, slot: int, gen: int) -> void:
 	await get_tree().create_timer(half, false).timeout
 	if gen != _reload_gen:       # eskirgan (almashtirildi/yangi reload) — hech narsa qilmaymiz
 		return
+	# Yangi magazin: o'qni to'ldiramiz va zaxiradan bittasini ayiramiz.
 	_ammo_counts[slot] = w.max_ammo
+	_mag_counts[slot] = maxi(0, _mag_counts[slot] - 1)
 	if slot == _current_index:
 		Events.ammo_changed.emit(_ammo_counts[slot], w.max_ammo)
+		Events.mags_changed.emit(_mag_counts[slot])
 	await get_tree().create_timer(half, false).timeout
 	if gen != _reload_gen:
 		return
